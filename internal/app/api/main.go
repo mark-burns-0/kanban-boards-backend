@@ -1,7 +1,10 @@
 package api
 
 import (
+	"backend/internal/challenge"
+	"backend/internal/notification"
 	"backend/internal/platform/http"
+	"backend/internal/user"
 	"context"
 	"log/slog"
 	"os/signal"
@@ -13,7 +16,12 @@ func Run() error {
 	srvErr := make(chan error, 1)
 
 	app := http.NewApp()
-	http.RegisterRoutes(app)
+	handlers := http.Handlers{
+		AuthHandler:         user.NewAuthHandler(),
+		ChallengeHandler:    challenge.NewChallengeHandler(),
+		NotificationHandler: notification.NewNotificationHandler(),
+	}
+	http.RegisterRoutes(app, handlers)
 	go func() { srvErr <- app.Listen(":8080") }()
 
 	ctx, stop := signal.NotifyContext(

@@ -1,12 +1,21 @@
 package routes
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"backend/internal/platform/http/middleware"
 
-func NotificationRoutes(router fiber.Router) fiber.Router {
-	notifications := router.Group("/notifications")
+	"github.com/gofiber/fiber/v2"
+)
 
-	notifications.Get("/")
-	notifications.Post("/:uuid/read")
+type NotificationHandler interface {
+	GetUnread(*fiber.Ctx) error
+	MarkAsRead(*fiber.Ctx) error
+}
+
+func NotificationRoutes(router fiber.Router, handler NotificationHandler) fiber.Router {
+	notifications := router.Group("/notifications").Use(middleware.AuthRequired)
+
+	notifications.Get("/", handler.GetUnread)
+	notifications.Post("/:uuid/read", handler.MarkAsRead)
 
 	return notifications
 }
