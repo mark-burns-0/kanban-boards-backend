@@ -1,0 +1,41 @@
+package api
+
+import (
+	"backend/internal/platform/http"
+	"context"
+	"log/slog"
+	"os/signal"
+	"syscall"
+	"time"
+)
+
+func Run() error {
+	srvErr := make(chan error, 1)
+
+	app := http.NewApp()
+	http.RegisterRoutes(app)
+	go func() { srvErr <- app.Listen(":8080") }()
+
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
+	defer stop()
+
+	select {
+	case <-ctx.Done():
+		// shutdownCtx
+		_, cancel := context.WithTimeout(
+			context.Background(),
+			10*time.Second,
+		)
+		defer cancel()
+		if err := app.Shutdown(); err != nil {
+			slog.Error("Shutdown error", err)
+		}
+		return nil
+	case err := <-srvErr:
+		return err
+	}
+}
