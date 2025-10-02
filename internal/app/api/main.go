@@ -8,6 +8,7 @@ import (
 	"backend/internal/platform/lang"
 	"backend/internal/user"
 	"context"
+	"fmt"
 	"log/slog"
 	"os/signal"
 	"syscall"
@@ -35,7 +36,7 @@ func Run() error {
 		NotificationHandler: notification.NewNotificationHandler(),
 	}
 	http.RegisterRoutes(app, handlers)
-	go func() { srvErr <- app.Listen(":8080") }()
+	go func() { srvErr <- app.Listen(fmt.Sprintf(":%s", config.ServerPort)) }()
 
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
