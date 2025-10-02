@@ -1,8 +1,6 @@
 package routes
 
 import (
-	"backend/internal/platform/http/middleware"
-
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -11,6 +9,7 @@ type AuthHandler interface {
 	Register(*fiber.Ctx) error
 	Current(*fiber.Ctx) error
 	Update(*fiber.Ctx) error
+	Refresh(*fiber.Ctx) error
 }
 
 func AuthRoutes(router fiber.Router, h AuthHandler) fiber.Router {
@@ -18,9 +17,6 @@ func AuthRoutes(router fiber.Router, h AuthHandler) fiber.Router {
 
 	auth.Post("/login", h.Login)       // вход в систему
 	auth.Post("/register", h.Register) // регистрация пользователя
-
-	auth.Get("/current", middleware.AuthRequired, h.Current) // текущий пользователь
-	auth.Put("/", middleware.AuthRequired, h.Update)         // обновление текущего пользователя
 
 	return auth
 }

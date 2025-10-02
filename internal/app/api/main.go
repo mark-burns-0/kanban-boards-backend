@@ -3,21 +3,34 @@ package api
 import (
 	"backend/internal/challenge"
 	"backend/internal/notification"
+	"backend/internal/platform/config"
 	"backend/internal/platform/http"
+	"backend/internal/platform/lang"
 	"backend/internal/user"
 	"context"
 	"log/slog"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/go-playground/validator/v10"
 )
 
 func Run() error {
 	srvErr := make(chan error, 1)
 
 	app := http.NewApp()
+	langRegistry := lang.NewRegistry()
+	validator := validator.New()
+
+	config := config.NewConfig()
+	config.SetLogger()
+
 	handlers := http.Handlers{
-		AuthHandler:         user.NewAuthHandler(),
+		AuthHandler: user.NewAuthHandler(
+			validator,
+			langRegistry,
+		),
 		ChallengeHandler:    challenge.NewChallengeHandler(),
 		NotificationHandler: notification.NewNotificationHandler(),
 	}
