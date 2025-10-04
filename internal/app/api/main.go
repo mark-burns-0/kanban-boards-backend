@@ -35,8 +35,12 @@ func Run() error {
 		ChallengeHandler:    challenge.NewChallengeHandler(),
 		NotificationHandler: notification.NewNotificationHandler(),
 	}
+
 	http.RegisterRoutes(app, handlers)
-	go func() { srvErr <- app.Listen(fmt.Sprintf(":%s", config.ServerPort)) }()
+
+	go func() {
+		srvErr <- app.Listen(fmt.Sprintf(":%s", config.ServerPort))
+	}()
 
 	ctx, stop := signal.NotifyContext(
 		context.Background(),

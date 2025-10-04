@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-type DBConfig struct {
+type dbConfig struct {
 	Username string
 	Password string
 	Host     string
@@ -15,7 +15,7 @@ type DBConfig struct {
 	SSLMode  string
 }
 
-type JWTConfig struct {
+type jwtConfig struct {
 	AccessTokenSecret string
 	AccessTokenTTL    string
 }
@@ -24,8 +24,8 @@ type Config struct {
 	LogLevel    int8
 	BcryptPower int8
 	ServerPort  string
-	DBConfig
-	JWTConfig
+	dbConfig
+	jwtConfig
 }
 
 func init() {
@@ -48,7 +48,7 @@ func NewConfig() *Config {
 		LogLevel:    int8(logLevel),
 		BcryptPower: int8(bcryptPower),
 	}
-	serverConfig.DBConfig = DBConfig{
+	serverConfig.dbConfig = dbConfig{
 		Username: os.Getenv("DB_USERNAME"),
 		Password: os.Getenv("DB_PASSWORD"),
 		Host:     os.Getenv("DB_HOST"),
@@ -56,7 +56,7 @@ func NewConfig() *Config {
 		Port:     os.Getenv("DB_PORT"),
 		SSLMode:  os.Getenv("DB_SSLMODE"),
 	}
-	serverConfig.JWTConfig = JWTConfig{
+	serverConfig.jwtConfig = jwtConfig{
 		AccessTokenSecret: os.Getenv("JWT_ACCESS_TOKEN_SECRET"),
 		AccessTokenTTL:    os.Getenv("JWT_ACCESS_TOKEN_TTL"),
 	}
