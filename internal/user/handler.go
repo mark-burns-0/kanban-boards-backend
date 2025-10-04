@@ -1,24 +1,20 @@
 package user
 
 import (
-	"backend/internal/platform/lang"
-
-	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
 
-type AuthHandler struct {
-	validator    *validator.Validate
-	langRegistry *lang.Registry
+type Validator interface {
+	ValidateStruct(c *fiber.Ctx, structPtr interface{}) error
 }
 
-func NewAuthHandler(
-	validator *validator.Validate,
-	langRegistry *lang.Registry,
-) *AuthHandler {
+type AuthHandler struct {
+	validator Validator
+}
+
+func NewAuthHandler(validator Validator) *AuthHandler {
 	return &AuthHandler{
-		validator:    validator,
-		langRegistry: langRegistry,
+		validator: validator,
 	}
 }
 
@@ -28,15 +24,8 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).
 			JSON(fiber.Map{"error": err.Error()})
 	}
-	err := h.validator.Struct(body)
-	if err != nil {
-		validationMessages, err := h.langRegistry.Validate(c.Context(), err)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).
-				JSON(fiber.Map{"error": err.Error()})
-		}
-		return c.Status(fiber.StatusUnprocessableEntity).
-			JSON(fiber.Map{"error": validationMessages})
+	if err := h.validator.ValidateStruct(c, body); err != nil {
+		return err
 	}
 	return c.JSON(fiber.Map{"data": body})
 }
@@ -46,17 +35,8 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	if err := c.BodyParser(&body); err != nil {
 		return c.JSON(fiber.Map{"error": err.Error()})
 	}
-	err := h.validator.Struct(body)
-	if err != nil {
-		validationMessages, err := h.langRegistry.Validate(c.Context(), err)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).
-				JSON(fiber.Map{"error": err.Error()})
-		}
-		if validationMessages != nil {
-			return c.Status(fiber.StatusUnprocessableEntity).
-				JSON(fiber.Map{"error": validationMessages})
-		}
+	if err := h.validator.ValidateStruct(c, body); err != nil {
+		return err
 	}
 	return c.JSON(fiber.Map{"data": body})
 }

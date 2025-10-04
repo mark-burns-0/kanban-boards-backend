@@ -5,7 +5,7 @@ import (
 	"backend/internal/notification"
 	"backend/internal/platform/config"
 	"backend/internal/platform/http"
-	"backend/internal/platform/lang"
+	"backend/internal/platform/validation"
 	"backend/internal/user"
 	"context"
 	"fmt"
@@ -13,25 +13,18 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/go-playground/validator/v10"
 )
 
 func Run() error {
 	srvErr := make(chan error, 1)
 
 	app := http.NewApp()
-	langRegistry := lang.NewRegistry()
-	validator := validator.New()
-
+	validator := validation.New()
 	config := config.NewConfig()
 	config.SetLogger()
 
 	handlers := http.Handlers{
-		AuthHandler: user.NewAuthHandler(
-			validator,
-			langRegistry,
-		),
+		AuthHandler:         user.NewAuthHandler(validator),
 		ChallengeHandler:    challenge.NewChallengeHandler(),
 		NotificationHandler: notification.NewNotificationHandler(),
 	}
