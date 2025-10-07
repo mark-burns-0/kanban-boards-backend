@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS comments(
+    id SERIAL PRIMARY KEY,
+    card_id INTEGER REFERENCES cards(id),
+    user_id INTEGER REFERENCES users(id) DELETE ON RESTRICT,
+    text TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ DEFAULT NULL
+);
