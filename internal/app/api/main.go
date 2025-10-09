@@ -1,8 +1,8 @@
 package api
 
 import (
-	"backend/internal/challenge"
-	"backend/internal/notification"
+	"backend/internal/auth"
+	"backend/internal/board"
 	"backend/internal/platform/config"
 	"backend/internal/platform/http"
 	"backend/internal/platform/validation"
@@ -24,15 +24,17 @@ func Run() error {
 	config.SetLogger()
 
 	handlers := http.Handlers{
-		AuthHandler:         user.NewAuthHandler(validator),
-		ChallengeHandler:    challenge.NewChallengeHandler(),
-		NotificationHandler: notification.NewNotificationHandler(),
+		AuthHandler:  auth.NewAuthHandler(validator),
+		BoardHandler: board.NewBoardHandler(validator),
+		UserHandler:  user.NewUserHandler(validator),
 	}
 
 	http.RegisterRoutes(app, handlers)
 
 	go func() {
-		srvErr <- app.Listen(fmt.Sprintf(":%s", config.ServerPort))
+		srvErr <- app.Listen(
+			fmt.Sprintf(":%s", config.ServerPort),
+		)
 	}()
 
 	ctx, stop := signal.NotifyContext(

@@ -7,9 +7,6 @@ import (
 type AuthHandler interface {
 	Login(*fiber.Ctx) error
 	Register(*fiber.Ctx) error
-	Current(*fiber.Ctx) error
-	Update(*fiber.Ctx) error
-	Refresh(*fiber.Ctx) error
 }
 
 func AuthRoutes(router fiber.Router, h AuthHandler) fiber.Router {

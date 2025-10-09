@@ -16,9 +16,8 @@ func RegisterRoutes(r fiber.Router, handlers Handlers) {
 	v1.Get("/health", healthCheck)
 
 	routes.AuthRoutes(v1, handlers.AuthHandler)
-	routes.UserRoutes(v1, handlers.AuthHandler)
-	routes.ChallengeRoutes(v1, handlers.ChallengeHandler)
-	routes.NotificationRoutes(v1, handlers.NotificationHandler)
+	routes.UserRoutes(v1, handlers.UserHandler)
+	routes.BoardRoutes(v1, handlers.BoardHandler)
 }
 
 func healthCheck(c *fiber.Ctx) error {
