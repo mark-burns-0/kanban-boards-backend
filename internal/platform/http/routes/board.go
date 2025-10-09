@@ -17,12 +17,12 @@ type BoardHandler interface {
 func BoardRoutes(router fiber.Router, handler BoardHandler) fiber.Router {
 	boards := router.Group("/boards").Use(middleware.AuthRequired)
 
-	boards.Get("/", handler.GetList)      // получить список челленджей
-	boards.Get("/:id", handler.GetByUUID) // получить челлендж по UUID
+	boards.Get("/", handler.GetList)      // получить список досок
+	boards.Get("/:id", handler.GetByUUID) // получить доску по UUID
 
-	boards.Post("/", handler.Store)       // создать новый челлендж
-	boards.Put("/:id", handler.Update)    // обновить челендж
-	boards.Delete("/:id", handler.Delete) // удалить челендж
+	boards.Post("/", handler.Store)       // создать новую доску
+	boards.Put("/:id", handler.Update)    // обновить доску
+	boards.Delete("/:id", handler.Delete) // удалить доску
 
 	return boards
 }
