@@ -1,4 +1,4 @@
-package auth
+package user
 
 import (
 	"context"
@@ -17,22 +17,20 @@ type Storage interface {
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 }
 
-type AuthRepository struct {
+type UserRepository struct {
 	storage Storage
 }
 
-func NewAuthRepository(storage Storage) *AuthRepository {
-	return &AuthRepository{storage: storage}
+func NewUserRepository(storage Storage) *UserRepository {
+	return &UserRepository{
+		storage: storage,
+	}
 }
 
-func (r *AuthRepository) GetByEmail(ctx context.Context, email string) (*User, error) {
+func (r *UserRepository) GetByID(ctx context.Context, id uint64) (*User, error) {
 	return nil, nil
 }
 
-func (r *AuthRepository) Create(ctx context.Context, user *UserCreateRequest) error {
+func (r *UserRepository) Update(ctx context.Context, user *User) error {
 	return nil
-}
-
-func (r *AuthRepository) GetByRefreshToken(ctx context.Context, token string) (*User, error) {
-	return nil, nil
 }

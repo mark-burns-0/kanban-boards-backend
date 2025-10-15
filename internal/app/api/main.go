@@ -5,35 +5,55 @@ import (
 	"backend/internal/board"
 	"backend/internal/platform/config"
 	"backend/internal/platform/http"
+	"backend/internal/platform/storage/postgres"
 	"backend/internal/platform/validation"
 	"backend/internal/user"
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 func Run() error {
-	srvErr := make(chan error, 1)
-
-	app := http.NewApp()
 	validator := validation.New()
 	config := config.NewConfig()
 	config.SetLogger()
-
-	handlers := http.Handlers{
-		AuthHandler:  auth.NewAuthHandler(validator),
-		BoardHandler: board.NewBoardHandler(validator),
-		UserHandler:  user.NewUserHandler(validator),
+	storage, err := postgres.NewStorage(config)
+	if err != nil {
+		slog.Error("Failed to create storage", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
-	http.RegisterRoutes(app, handlers)
+	// repositories
+	userRepo := user.NewUserRepository(storage)
+	authRepo := auth.NewAuthRepository(storage)
 
+	//services
+	userService := user.NewUserService(userRepo)
+	authService := auth.NewAuthService(authRepo)
+
+	// handlers
+	handlers := http.Handlers{
+		AuthHandler:  auth.NewAuthHandler(validator, authService),
+		UserHandler:  user.NewUserHandler(validator, userService),
+		BoardHandler: board.NewBoardHandler(validator),
+	}
+
+	app := http.NewApp()
+	http.RegisterRoutes(app, handlers)
+	return runServer(config, app)
+}
+
+func runServer(config *config.Config, app *fiber.App) error {
+	srvErr := make(chan error, 1)
 	go func() {
 		srvErr <- app.Listen(
-			fmt.Sprintf(":%s", config.ServerPort),
+			fmt.Sprintf(":%s", config.GetServerPort()),
 		)
 	}()
 

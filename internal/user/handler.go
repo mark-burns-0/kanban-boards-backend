@@ -7,17 +7,20 @@ type Validator interface {
 }
 
 type UserHandler struct {
-	validator Validator
+	validator   Validator
+	userService *UserService
 }
 
-func NewUserHandler(validator Validator) *UserHandler {
+func NewUserHandler(
+	validator Validator,
+	userService *UserService,
+) *UserHandler {
 	return &UserHandler{
-		validator: validator,
+		validator:   validator,
+		userService: userService,
 	}
 }
 
 func (h *UserHandler) Current(c *fiber.Ctx) error { return nil }
 
 func (h *UserHandler) Update(c *fiber.Ctx) error { return nil }
-
-func (h *UserHandler) Refresh(c *fiber.Ctx) error { return nil }

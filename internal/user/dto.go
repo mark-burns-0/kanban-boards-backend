@@ -1,4 +1,4 @@
-package auth
+package user
 
 import "time"
 
@@ -13,26 +13,9 @@ type User struct {
 	DeletedAt    *time.Time
 }
 
-type UserCreateRequest struct {
+type UserRequest struct {
 	Name                 string `json:"name" validate:"required"`
 	Email                string `json:"email" validate:"required"`
 	Password             string `json:"password" validate:"required"`
 	PasswordConfirmation string `json:"password_confirmation" validate:"required"`
-}
-
-type UserLoginRequest struct {
-	Email    string `json:"email" validate:"required"`
-	Password string `json:"password" validate:"required"`
-}
-
-type UserResponse struct {
-	ID        uint64    `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
-type TokensResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
 }

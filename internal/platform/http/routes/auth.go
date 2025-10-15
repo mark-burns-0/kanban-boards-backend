@@ -7,6 +7,7 @@ import (
 type AuthHandler interface {
 	Login(*fiber.Ctx) error
 	Register(*fiber.Ctx) error
+	RefreshToken(*fiber.Ctx) error
 }
 
 func AuthRoutes(router fiber.Router, h AuthHandler) fiber.Router {
@@ -14,6 +15,7 @@ func AuthRoutes(router fiber.Router, h AuthHandler) fiber.Router {
 
 	auth.Post("/login", h.Login)       // вход в систему
 	auth.Post("/register", h.Register) // регистрация пользователя
+	auth.Post("/refresh-token", h.RefreshToken)
 
 	return auth
 }
