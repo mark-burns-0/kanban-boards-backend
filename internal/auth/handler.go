@@ -5,7 +5,7 @@ import (
 )
 
 type Validator interface {
-	ValidateStruct(c *fiber.Ctx, structPtr interface{}) error
+	ValidateStruct(c *fiber.Ctx, structPtr interface{}) (map[string]string, int, error)
 }
 
 type AuthHandler struct {
@@ -24,24 +24,37 @@ func NewAuthHandler(
 }
 
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
-	body := UserLoginRequest{}
+	body := &UserLoginRequest{}
 	if err := c.BodyParser(&body); err != nil {
 		return c.Status(fiber.StatusBadRequest).
 			JSON(fiber.Map{"error": err.Error()})
 	}
-	if err := h.validator.ValidateStruct(c, body); err != nil {
-		return err
+	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
+		if err != nil {
+			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-	return c.JSON(fiber.Map{"data": body})
+	userResponse, err := h.authService.Login(body)
+	if err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(userResponse)
 }
 
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
-	body := UserCreateRequest{}
+	body := &UserCreateRequest{}
 	if err := c.BodyParser(&body); err != nil {
 		return c.JSON(fiber.Map{"error": err.Error()})
 	}
-	if err := h.validator.ValidateStruct(c, body); err != nil {
-		return err
+	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
+		if err != nil {
+			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
+	}
+	if err := h.authService.Register(body); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.JSON(fiber.Map{"data": body})
 }
@@ -51,8 +64,11 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 	if err := c.BodyParser(&body); err != nil {
 		return c.JSON(fiber.Map{"error": err.Error()})
 	}
-	if err := h.validator.ValidateStruct(c, body); err != nil {
-		return err
+	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
+		if err != nil {
+			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
 	return c.JSON(fiber.Map{"data": body})
 }

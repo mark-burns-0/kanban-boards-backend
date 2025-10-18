@@ -19,16 +19,14 @@ func New() *Validator {
 	}
 }
 
-func (v *Validator) ValidateStruct(c *fiber.Ctx, structPtr any) error {
-	err := v.validator.Struct(structPtr)
+func (v *Validator) ValidateStruct(c *fiber.Ctx, structPtr any) (validationMessages map[string]string, statusCode int, err error) {
+	err = v.validator.Struct(structPtr)
 	if err != nil {
-		validationMessages, err := v.langRegistry.Validate(c.Context(), err)
+		validationMessages, err = v.langRegistry.Validate(c.Context(), err)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).
-				JSON(fiber.Map{"error": err.Error()})
+			return nil, fiber.StatusInternalServerError, err
 		}
-		return c.Status(fiber.StatusUnprocessableEntity).
-			JSON(fiber.Map{"error": validationMessages})
+		return validationMessages, fiber.StatusUnprocessableEntity, nil
 	}
-	return nil
+	return nil, fiber.StatusOK, nil
 }

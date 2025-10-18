@@ -14,10 +14,10 @@ type User struct {
 }
 
 type UserCreateRequest struct {
-	Name                 string `json:"name" validate:"required"`
-	Email                string `json:"email" validate:"required"`
-	Password             string `json:"password" validate:"required"`
-	PasswordConfirmation string `json:"password_confirmation" validate:"required"`
+	Name                 string `json:"name" validate:"required,min=1,max=255"`
+	Email                string `json:"email" validate:"required,email"`
+	Password             string `json:"password" validate:"required,min=8,max=32"`
+	PasswordConfirmation string `json:"password_confirmation" validate:"required,min=8,max=32,eqfield=Password"`
 }
 
 type UserLoginRequest struct {
@@ -26,10 +26,10 @@ type UserLoginRequest struct {
 }
 
 type UserResponse struct {
-	ID        uint64    `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        uint64     `json:"id"`
+	Name      string     `json:"name"`
+	Email     string     `json:"email"`
+	CreatedAt *time.Time `json:"created_at,omitempty"`
 }
 
 type TokensResponse struct {

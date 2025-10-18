@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"database/sql"
+	"fmt"
 )
 
 type Storage interface {
@@ -26,10 +27,32 @@ func NewAuthRepository(storage Storage) *AuthRepository {
 }
 
 func (r *AuthRepository) GetByEmail(ctx context.Context, email string) (*User, error) {
-	return nil, nil
+	op := "auth.repository.get_by_email"
+	row := r.storage.QueryRowContext(ctx, "SELECT id, name, email, password, refresh_token FROM users WHERE email = $1", email)
+	user := &User{}
+	if err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.RefreshToken); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return user, nil
 }
 
-func (r *AuthRepository) Create(ctx context.Context, user *UserCreateRequest) error {
+func (r *AuthRepository) Create(ctx context.Context, user *User) error {
+	op := "auth.repository.create"
+	res, err := r.storage.ExecContext(
+		ctx,
+		"INSERT INTO users (name, email, password, refresh_token) VALUES($1, $2, $3, $4)",
+		user.Name, user.Email, user.Password, user.RefreshToken,
+	)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if rows != 1 {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
 	return nil
 }
 

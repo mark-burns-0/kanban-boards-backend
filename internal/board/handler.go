@@ -3,7 +3,7 @@ package board
 import "github.com/gofiber/fiber/v2"
 
 type Validator interface {
-	ValidateStruct(c *fiber.Ctx, structPtr interface{}) error
+	ValidateStruct(c *fiber.Ctx, structPtr interface{}) (map[string]string, int, error)
 }
 
 type BoardHandler struct {
