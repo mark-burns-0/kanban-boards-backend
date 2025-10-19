@@ -44,7 +44,7 @@ func Run() error {
 		BoardHandler: board.NewBoardHandler(validator),
 	}
 
-	app := http.NewApp()
+	app := http.NewApp(config)
 	http.RegisterRoutes(app, handlers)
 	return runServer(config, app)
 }

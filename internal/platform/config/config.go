@@ -23,6 +23,7 @@ type jwtConfig struct {
 }
 
 type Config struct {
+	AppName     string
 	LogLevel    int8
 	BcryptPower int8
 	ServerPort  string
@@ -46,6 +47,7 @@ func NewConfig() *Config {
 		panic(err.Error())
 	}
 	serverConfig := &Config{
+		AppName:     os.Getenv("APP_NAME"),
 		ServerPort:  os.Getenv("HTTP_PORT"),
 		LogLevel:    int8(logLevel),
 		BcryptPower: int8(bcryptPower),
@@ -117,6 +119,10 @@ func (c *Config) GetBcryptPower() string {
 
 func (c *Config) GetServerPort() string {
 	return c.ServerPort
+}
+
+func (c *Config) GetAppName() string {
+	return c.AppName
 }
 
 func (c *Config) SetLogger() {
