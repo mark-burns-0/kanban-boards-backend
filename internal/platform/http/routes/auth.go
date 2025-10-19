@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"backend/internal/platform/http/middleware"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -15,7 +17,7 @@ func AuthRoutes(router fiber.Router, h AuthHandler) fiber.Router {
 
 	auth.Post("/login", h.Login)       // вход в систему
 	auth.Post("/register", h.Register) // регистрация пользователя
-	auth.Post("/refresh-token", h.RefreshToken)
+	auth.Post("/refresh-token", middleware.AuthRequired, h.RefreshToken)
 
 	return auth
 }

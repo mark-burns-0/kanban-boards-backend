@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	UserIDKey    = "userID"
 	BearerPrefix = "Bearer "
 )
 
@@ -44,7 +45,7 @@ func AuthRequired(c *fiber.Ctx) error {
 		)
 	}
 
-	c.Locals("userID", *claims.Sub.UserID)
+	c.Locals(UserIDKey, *claims.Sub.UserID)
 
 	return c.Next()
 }

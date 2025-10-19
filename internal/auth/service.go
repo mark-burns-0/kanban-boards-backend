@@ -24,9 +24,14 @@ type AuthCreator interface {
 	Create(context.Context, *User) error
 }
 
+type AuthUpdater interface {
+	UpdateRefreshToken(context.Context, uint64, string) error
+}
+
 type AuthRepo interface {
 	AuthGetter
 	AuthCreator
+	AuthUpdater
 }
 
 type Config interface {
@@ -95,6 +100,10 @@ func (r *AuthService) Login(ctx context.Context, userRequest *UserLoginRequest) 
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+	err = r.authRepo.UpdateRefreshToken(ctx, user.ID, refreshToken)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 
 	return &TokensResponse{
 		AccessToken:  accessToken,
@@ -102,8 +111,36 @@ func (r *AuthService) Login(ctx context.Context, userRequest *UserLoginRequest) 
 	}, nil
 }
 
-func (r *AuthService) RefreshToken(ctx context.Context) (*TokensResponse, error) {
-	return nil, nil
+func (r *AuthService) RefreshToken(ctx context.Context, token string) (*TokensResponse, error) {
+	op := "auth.service.RefreshToken"
+	user, err := r.authRepo.GetByRefreshToken(ctx, token)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if user == nil {
+		return nil, fmt.Errorf("%s: user with refresh token %s not found", op, token)
+	}
+
+	accessToken, err := r.generateToken(user, AccessTokenType)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	refreshToken, err := r.generateToken(user, RefreshTokenType)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	err = r.authRepo.UpdateRefreshToken(ctx, user.ID, refreshToken)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return &TokensResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
 
 func (r *AuthService) generateToken(user *User, tokenType string) (string, error) {

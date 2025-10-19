@@ -1,7 +1,14 @@
 package auth
 
 import (
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
+)
+
+const (
+	RefreshTokenHeader = "Refresh-Token"
+	BearerPrefix       = "Bearer "
 )
 
 type Validator interface {
@@ -35,11 +42,11 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-	userResponse, err := h.authService.Login(c.Context(), body)
+	tokenResponse, err := h.authService.Login(c.Context(), body)
 	if err != nil {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.JSON(userResponse)
+	return c.JSON(tokenResponse)
 }
 
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
@@ -60,15 +67,14 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
-	body := UserCreateRequest{}
-	if err := c.BodyParser(&body); err != nil {
-		return c.JSON(fiber.Map{"error": err.Error()})
+	token := c.Get(RefreshTokenHeader)
+	if token == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "missing refresh token"})
 	}
-	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
-		if err != nil {
-			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
-		}
-		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
+	token = strings.TrimPrefix(token, BearerPrefix)
+	tokenResponse, err := h.authService.RefreshToken(c.Context(), token)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
-	return c.JSON(fiber.Map{"data": body})
+	return c.JSON(tokenResponse)
 }
