@@ -50,6 +50,7 @@ func NewAuthService(authRepo AuthRepo, config Config) *AuthService {
 }
 
 func (r *AuthService) Register(userRequest *UserCreateRequest) error {
+	op := "auth.service.Register"
 	user, _ := r.authRepo.GetByEmail(context.TODO(), userRequest.Email)
 	if user != nil {
 		return fmt.Errorf("user with email %s already exists", userRequest.Email)
@@ -57,12 +58,12 @@ func (r *AuthService) Register(userRequest *UserCreateRequest) error {
 
 	power, err := strconv.Atoi(r.config.GetBcryptPower())
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(userRequest.Password), power)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	newUser := User{
@@ -75,23 +76,24 @@ func (r *AuthService) Register(userRequest *UserCreateRequest) error {
 }
 
 func (r *AuthService) Login(userRequest *UserLoginRequest) (*TokensResponse, error) {
+	op := "auth.service.Login"
 	user, _ := r.authRepo.GetByEmail(context.TODO(), userRequest.Email)
 	if user == nil {
-		return nil, fmt.Errorf("user with email %s not found", userRequest.Email)
+		return nil, fmt.Errorf("%s: user with email %s not found", op, userRequest.Email)
 	}
 
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userRequest.Password))
 	if err != nil {
-		return nil, fmt.Errorf("invalid password")
+		return nil, fmt.Errorf("%s: invalid password", op)
 	}
 
 	accessToken, err := r.generateToken(user, AccessTokenType)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	refreshToken, err := r.generateToken(user, RefreshTokenType)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &TokensResponse{
