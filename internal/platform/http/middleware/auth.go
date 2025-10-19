@@ -1,16 +1,62 @@
 package middleware
 
 import (
+	"os"
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 )
 
+const (
+	BearerPrefix = "Bearer "
+)
+
+type sub struct {
+	UserID *int `json:"id"`
+}
+
+type Claims struct {
+	Sub sub `json:"sub"`
+	jwt.RegisteredClaims
+}
+
 func AuthRequired(c *fiber.Ctx) error {
-	token := c.Get("Authorization")
+	token := getToken(c)
+
 	if token == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+		return c.Status(fiber.StatusUnauthorized).
+			JSON(
+				fiber.Map{"error": "missing_token"},
+			)
 	}
 
-	// логика проверки токена...
+	claims := &Claims{}
+	if parsedToken, err := parseToken(token, claims); err != nil || !parsedToken.Valid {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			fiber.Map{"error": "token_expired_or_invalid"},
+		)
+	}
+
+	if claims.Sub.UserID == nil || *claims.Sub.UserID == 0 {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			fiber.Map{"error": "invalid_user_identifier"},
+		)
+	}
+
+	c.Locals("userID", *claims.Sub.UserID)
 
 	return c.Next()
+}
+
+func getToken(c *fiber.Ctx) string {
+	token := c.Get("Authorization")
+	token = strings.TrimPrefix(token, BearerPrefix)
+	return token
+}
+
+func parseToken(token string, claims *Claims) (*jwt.Token, error) {
+	return jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (any, error) {
+		return []byte(os.Getenv("JWT_ACCESS_TOKEN_SECRET")), nil
+	})
 }

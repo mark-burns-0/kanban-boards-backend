@@ -22,7 +22,7 @@ func RegisterRoutes(r fiber.Router, handlers Handlers) {
 
 func healthCheck(c *fiber.Ctx) error {
 	return c.JSON(Response{
-		Message:    "Ok",
+		Message:    "OK",
 		StatusCode: http.StatusOK,
 	})
 }
