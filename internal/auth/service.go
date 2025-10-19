@@ -49,9 +49,9 @@ func NewAuthService(authRepo AuthRepo, config Config) *AuthService {
 	}
 }
 
-func (r *AuthService) Register(userRequest *UserCreateRequest) error {
+func (r *AuthService) Register(ctx context.Context, userRequest *UserCreateRequest) error {
 	op := "auth.service.Register"
-	user, _ := r.authRepo.GetByEmail(context.TODO(), userRequest.Email)
+	user, _ := r.authRepo.GetByEmail(ctx, userRequest.Email)
 	if user != nil {
 		return fmt.Errorf("user with email %s already exists", userRequest.Email)
 	}
@@ -72,12 +72,12 @@ func (r *AuthService) Register(userRequest *UserCreateRequest) error {
 		Password: string(hashedPassword),
 	}
 
-	return r.authRepo.Create(context.TODO(), &newUser)
+	return r.authRepo.Create(ctx, &newUser)
 }
 
-func (r *AuthService) Login(userRequest *UserLoginRequest) (*TokensResponse, error) {
+func (r *AuthService) Login(ctx context.Context, userRequest *UserLoginRequest) (*TokensResponse, error) {
 	op := "auth.service.Login"
-	user, _ := r.authRepo.GetByEmail(context.TODO(), userRequest.Email)
+	user, _ := r.authRepo.GetByEmail(ctx, userRequest.Email)
 	if user == nil {
 		return nil, fmt.Errorf("%s: user with email %s not found", op, userRequest.Email)
 	}

@@ -35,7 +35,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-	userResponse, err := h.authService.Login(body)
+	userResponse, err := h.authService.Login(c.Context(), body)
 	if err != nil {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -53,7 +53,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-	if err := h.authService.Register(body); err != nil {
+	if err := h.authService.Register(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.JSON(fiber.Map{"data": body})
