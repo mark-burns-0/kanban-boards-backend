@@ -14,7 +14,7 @@ const (
 )
 
 type sub struct {
-	UserID *int `json:"id"`
+	UserID *uint64 `json:"id"`
 }
 
 type Claims struct {

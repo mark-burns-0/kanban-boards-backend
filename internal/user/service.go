@@ -1,6 +1,15 @@
 package user
 
-import "context"
+import (
+	"context"
+	"fmt"
+
+	"golang.org/x/crypto/bcrypt"
+)
+
+var (
+	ErrPasswordMismatch = fmt.Errorf("password mismatch")
+)
 
 type UserFinder interface {
 	GetByID(context.Context, uint64) (*User, error)
@@ -35,10 +44,39 @@ func NewUserService(userRepo UserRepo, config Config) *UserService {
 	}
 }
 
-func (s *UserService) Current(ctx context.Context) (*User, error) {
-	return nil, nil
+func (s *UserService) Current(ctx context.Context, userID uint64) (*UserResponse, error) {
+	op := "user.service.Current"
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return &UserResponse{
+		Name:      user.Name,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+	}, nil
 }
 
-func (s *UserService) Update(ctx context.Context, userRequest *UserRequest) error {
-	return nil
+func (s *UserService) Update(ctx context.Context, userRequest *UserRequest, userID uint64) error {
+	op := "user.service.Update"
+
+	user := &User{
+		ID:    userID,
+		Name:  userRequest.Name,
+		Email: userRequest.Email,
+	}
+
+	if userRequest.Password != nil {
+		if userRequest.PasswordConfirmation == nil || *userRequest.Password != *userRequest.PasswordConfirmation {
+			return ErrPasswordMismatch
+		}
+
+		hashed, err := bcrypt.GenerateFromPassword([]byte(*userRequest.Password), 12)
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+		user.Password = string(hashed)
+	}
+
+	return s.userRepo.Update(ctx, user)
 }
