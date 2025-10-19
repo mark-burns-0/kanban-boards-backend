@@ -44,7 +44,7 @@ func (r *AuthRepository) Create(ctx context.Context, user *User) error {
 		user.Name, user.Email, user.Password, user.RefreshToken,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	rows, err := res.RowsAffected()
 	if rows != 1 {
