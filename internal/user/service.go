@@ -15,13 +15,23 @@ type UserRepo interface {
 	UserUpdater
 }
 
-type UserService struct {
-	userRepo UserRepo
+type Config interface {
+	GetAccessTokenSecret() string
+	GetAccessTokenTTL() string
+	GetRefreshTokenSecret() string
+	GetRefreshTokenTTL() string
+	GetBcryptPower() string
 }
 
-func NewUserService(userRepo UserRepo) *UserService {
+type UserService struct {
+	userRepo UserRepo
+	config   Config
+}
+
+func NewUserService(userRepo UserRepo, config Config) *UserService {
 	return &UserService{
 		userRepo: userRepo,
+		config:   config,
 	}
 }
 

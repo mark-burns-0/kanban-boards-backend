@@ -3,8 +3,16 @@ package auth
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
+)
+
+const (
+	AccessTokenType  = "access"
+	RefreshTokenType = "refresh"
 )
 
 type AuthGetter interface {
@@ -21,13 +29,23 @@ type AuthRepo interface {
 	AuthCreator
 }
 
-type AuthService struct {
-	authRepo AuthRepo
+type Config interface {
+	GetAccessTokenSecret() string
+	GetAccessTokenTTL() string
+	GetRefreshTokenSecret() string
+	GetRefreshTokenTTL() string
+	GetBcryptPower() string
 }
 
-func NewAuthService(authRepo AuthRepo) *AuthService {
+type AuthService struct {
+	authRepo AuthRepo
+	config   Config
+}
+
+func NewAuthService(authRepo AuthRepo, config Config) *AuthService {
 	return &AuthService{
 		authRepo: authRepo,
+		config:   config,
 	}
 }
 
@@ -36,34 +54,95 @@ func (r *AuthService) Register(userRequest *UserCreateRequest) error {
 	if user != nil {
 		return fmt.Errorf("user with email %s already exists", userRequest.Email)
 	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(userRequest.Password), 12)
+
+	power, err := strconv.Atoi(r.config.GetBcryptPower())
 	if err != nil {
 		return err
 	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(userRequest.Password), power)
+	if err != nil {
+		return err
+	}
+
 	newUser := User{
 		Name:     userRequest.Name,
 		Email:    userRequest.Email,
 		Password: string(hashedPassword),
 	}
+
 	return r.authRepo.Create(context.TODO(), &newUser)
 }
 
-func (r *AuthService) Login(userRequest *UserLoginRequest) (*UserResponse, error) {
+func (r *AuthService) Login(userRequest *UserLoginRequest) (*TokensResponse, error) {
 	user, _ := r.authRepo.GetByEmail(context.TODO(), userRequest.Email)
 	if user == nil {
 		return nil, fmt.Errorf("user with email %s not found", userRequest.Email)
 	}
+
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userRequest.Password))
 	if err != nil {
 		return nil, fmt.Errorf("invalid password")
 	}
-	return &UserResponse{
-		ID:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
+
+	accessToken, err := r.generateToken(user, AccessTokenType)
+	if err != nil {
+		return nil, err
+	}
+	refreshToken, err := r.generateToken(user, RefreshTokenType)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TokensResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}, nil
 }
 
 func (r *AuthService) RefreshToken(ctx context.Context) (*TokensResponse, error) {
 	return nil, nil
+}
+
+func (r *AuthService) generateToken(user *User, tokenType string) (string, error) {
+	op := "auth.service.generateToken"
+	if tokenType == "" {
+		return "", fmt.Errorf("token type is required")
+	}
+
+	var tokenSecret string
+	var ttl string
+
+	switch tokenType {
+	case AccessTokenType:
+		tokenSecret = r.config.GetAccessTokenSecret()
+		ttl = r.config.GetAccessTokenTTL()
+	case RefreshTokenType:
+		tokenSecret = r.config.GetRefreshTokenSecret()
+		ttl = r.config.GetRefreshTokenTTL()
+	default:
+		return "", fmt.Errorf("%s: unknown token type: %s", op, tokenType)
+	}
+
+	key := []byte(tokenSecret)
+	duration, err := time.ParseDuration(ttl)
+	if err != nil {
+		return "", fmt.Errorf("%s: invalid TTL duration for %s token: %w", op, tokenType, err)
+	}
+
+	claims := jwt.NewWithClaims(
+		jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"sub": map[string]any{
+				"id": user.ID,
+			},
+			"exp": time.Now().Add(duration).Unix(),
+		})
+
+	signedString, err := claims.SignedString(key)
+	if err != nil {
+		return "", fmt.Errorf("%s: failed to sign %s token: %w", op, tokenType, err)
+	}
+
+	return signedString, nil
 }

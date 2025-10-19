@@ -34,8 +34,8 @@ func Run() error {
 	authRepo := auth.NewAuthRepository(storage)
 
 	//services
-	userService := user.NewUserService(userRepo)
-	authService := auth.NewAuthService(authRepo)
+	userService := user.NewUserService(userRepo, config)
+	authService := auth.NewAuthService(authRepo, config)
 
 	// handlers
 	handlers := http.Handlers{
