@@ -110,18 +110,9 @@ func (r *AuthService) generateToken(user *User, tokenType string) (string, error
 		return "", fmt.Errorf("token type is required")
 	}
 
-	var tokenSecret string
-	var ttl string
-
-	switch tokenType {
-	case AccessTokenType:
-		tokenSecret = r.config.GetAccessTokenSecret()
-		ttl = r.config.GetAccessTokenTTL()
-	case RefreshTokenType:
-		tokenSecret = r.config.GetRefreshTokenSecret()
-		ttl = r.config.GetRefreshTokenTTL()
-	default:
-		return "", fmt.Errorf("%s: unknown token type: %s", op, tokenType)
+	tokenSecret, ttl, err := r.getTokenConfig(tokenType)
+	if err != nil {
+		return "", fmt.Errorf("%s: failed to get token config: %w", op, err)
 	}
 
 	key := []byte(tokenSecret)
@@ -145,4 +136,16 @@ func (r *AuthService) generateToken(user *User, tokenType string) (string, error
 	}
 
 	return signedString, nil
+}
+
+func (r *AuthService) getTokenConfig(tokenType string) (string, string, error) {
+	op := "auth.service.getTokenConfig"
+	switch tokenType {
+	case AccessTokenType:
+		return r.config.GetAccessTokenSecret(), r.config.GetAccessTokenTTL(), nil
+	case RefreshTokenType:
+		return r.config.GetRefreshTokenSecret(), r.config.GetRefreshTokenTTL(), nil
+	default:
+		return "", "", fmt.Errorf("%s: unknown token type: %s", op, tokenType)
+	}
 }
