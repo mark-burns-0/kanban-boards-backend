@@ -92,6 +92,5 @@ func buildDSN(cfg StorageConfig) string {
 	dsn.WriteString(cfg.GetName())
 	dsn.WriteString("?sslmode=")
 	dsn.WriteString(cfg.GetSSLMode())
-
 	return dsn.String()
 }

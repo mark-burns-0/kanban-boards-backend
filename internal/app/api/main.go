@@ -19,6 +19,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+type Storage interface {
+	Close() error
+}
+
 func Run() error {
 	validator := validation.New()
 	config := config.NewConfig()
@@ -46,10 +50,10 @@ func Run() error {
 
 	app := http.NewApp(config)
 	http.RegisterRoutes(app, handlers)
-	return runServer(config, app)
+	return runServer(config, app, storage)
 }
 
-func runServer(config *config.Config, app *fiber.App) error {
+func runServer(config *config.Config, app *fiber.App, storage Storage) error {
 	srvErr := make(chan error, 1)
 	go func() {
 		srvErr <- app.Listen(
@@ -66,14 +70,22 @@ func runServer(config *config.Config, app *fiber.App) error {
 
 	select {
 	case <-ctx.Done():
-		// shutdownCtx
 		_, cancel := context.WithTimeout(
 			context.Background(),
 			10*time.Second,
 		)
 		defer cancel()
 		if err := app.Shutdown(); err != nil {
-			slog.Error("Shutdown error", err)
+			slog.Error(
+				"Shutdown error",
+				slog.String("error", err.Error()),
+			)
+		}
+		if err := storage.Close(); err != nil {
+			slog.Error(
+				"closing db",
+				slog.String("error", err.Error()),
+			)
 		}
 		return nil
 	case err := <-srvErr:
