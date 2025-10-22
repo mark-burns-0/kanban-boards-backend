@@ -1,6 +1,8 @@
 package user
 
 import (
+	"backend/internal/shared/ports/http"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -8,17 +10,13 @@ const (
 	UserIDKey = "userID"
 )
 
-type Validator interface {
-	ValidateStruct(c *fiber.Ctx, structPtr interface{}) (map[string]string, int, error)
-}
-
 type UserHandler struct {
-	validator   Validator
+	validator   http.Validator
 	userService *UserService
 }
 
 func NewUserHandler(
-	validator Validator,
+	validator http.Validator,
 	userService *UserService,
 ) *UserHandler {
 	return &UserHandler{

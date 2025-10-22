@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"backend/internal/shared/ports/http"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,17 +12,13 @@ const (
 	BearerPrefix       = "Bearer "
 )
 
-type Validator interface {
-	ValidateStruct(c *fiber.Ctx, structPtr interface{}) (map[string]string, int, error)
-}
-
 type AuthHandler struct {
-	validator   Validator
+	validator   http.Validator
 	authService *AuthService
 }
 
 func NewAuthHandler(
-	validator Validator,
+	validator http.Validator,
 	authService *AuthService,
 ) *AuthHandler {
 	return &AuthHandler{

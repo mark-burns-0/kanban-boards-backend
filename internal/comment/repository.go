@@ -1,4 +1,4 @@
-package board
+package comment
 
 import (
 	"context"
@@ -17,24 +17,18 @@ type Storage interface {
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 }
 
-type BoardRepository struct {
+type CommentRepository struct {
 	storage Storage
 }
 
-func NewBoardRepository(storage Storage) *BoardRepository {
-	return &BoardRepository{
+func NewCommentRepository(
+	storage Storage,
+) *CommentRepository {
+	return &CommentRepository{
 		storage: storage,
 	}
 }
 
-func Get(id uint64) {}
-
-func GetList() {}
-
-func Create() {}
-
-func Update(id uint64) {}
-
-func Delete(id uint64) {}
-
-func MoveToColumn(id, columnID, fromPosition, toPosition uint64) {}
+func (r *CommentRepository) Create() {}
+func (r *CommentRepository) Update() {}
+func (r *CommentRepository) Delete() {}

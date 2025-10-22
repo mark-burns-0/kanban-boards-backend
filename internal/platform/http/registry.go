@@ -6,4 +6,5 @@ type Handlers struct {
 	routes.AuthHandler
 	routes.BoardHandler
 	routes.UserHandler
+	routes.CardHandler
 }

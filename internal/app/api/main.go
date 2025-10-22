@@ -3,6 +3,7 @@ package api
 import (
 	"backend/internal/auth"
 	"backend/internal/board"
+	"backend/internal/card"
 	"backend/internal/platform/config"
 	"backend/internal/platform/http"
 	"backend/internal/platform/storage/postgres"
@@ -46,10 +47,34 @@ func Run() error {
 		AuthHandler:  auth.NewAuthHandler(validator, authService),
 		UserHandler:  user.NewUserHandler(validator, userService),
 		BoardHandler: board.NewBoardHandler(validator),
+		CardHandler:  card.NewCardHandler(validator),
 	}
 
 	app := http.NewApp(config)
 	http.RegisterRoutes(app, handlers)
+	app.Get("/debug/routes", func(c *fiber.Ctx) error {
+		type RouteDetail struct {
+			Method string   `json:"method"`
+			Path   string   `json:"path"`
+			Name   string   `json:"name"`
+			Params []string `json:"params"`
+		}
+
+		var routes []RouteDetail
+		for _, route := range app.GetRoutes() {
+			routes = append(routes, RouteDetail{
+				Method: route.Method,
+				Path:   route.Path,
+				Name:   route.Name,
+				Params: route.Params,
+			})
+		}
+
+		return c.JSON(fiber.Map{
+			"count":  len(routes),
+			"routes": routes,
+		})
+	})
 	return runServer(config, app, storage)
 }
 

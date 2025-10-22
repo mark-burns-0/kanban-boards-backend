@@ -33,8 +33,8 @@ func NewUserRepository(storage Storage) *UserRepository {
 	}
 }
 
-func (r *UserRepository) GetByID(ctx context.Context, id uint64) (*User, error) {
-	op := "user.repository.GetByID"
+func (r *UserRepository) Get(ctx context.Context, id uint64) (*User, error) {
+	op := "user.repository.Get"
 	user := &User{}
 	row := r.storage.QueryRowContext(
 		ctx,

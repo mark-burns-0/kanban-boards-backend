@@ -1,4 +1,4 @@
-package board
+package card
 
 import (
 	"context"
@@ -17,24 +17,25 @@ type Storage interface {
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 }
 
-type BoardRepository struct {
+type CardRepository struct {
 	storage Storage
 }
 
-func NewBoardRepository(storage Storage) *BoardRepository {
-	return &BoardRepository{
+func NewCardRepository(
+	storage Storage,
+) *CardRepository {
+	return &CardRepository{
 		storage: storage,
 	}
 }
 
-func Get(id uint64) {}
+func (r *CardRepository) Create() {}
 
-func GetList() {}
+func (r *CardRepository) GetList() {}
 
-func Create() {}
+func (r *CardRepository) Delete(id uint64) {}
 
-func Update(id uint64) {}
-
-func Delete(id uint64) {}
-
-func MoveToColumn(id, columnID, fromPosition, toPosition uint64) {}
+func (r *CardRepository) MoveToNewPosition(
+	cardID, boardID, toColumnID, cardPosition uint64,
+) {
+}

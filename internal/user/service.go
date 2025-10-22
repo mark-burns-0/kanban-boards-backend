@@ -12,7 +12,7 @@ var (
 )
 
 type UserFinder interface {
-	GetByID(context.Context, uint64) (*User, error)
+	Get(context.Context, uint64) (*User, error)
 }
 
 type UserUpdater interface {
@@ -46,7 +46,7 @@ func NewUserService(userRepo UserRepo, config Config) *UserService {
 
 func (s *UserService) Current(ctx context.Context, userID uint64) (*UserResponse, error) {
 	op := "user.service.Current"
-	user, err := s.userRepo.GetByID(ctx, userID)
+	user, err := s.userRepo.Get(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

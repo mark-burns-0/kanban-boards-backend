@@ -12,6 +12,7 @@ type BoardHandler interface {
 	Store(*fiber.Ctx) error
 	Update(*fiber.Ctx) error
 	Delete(*fiber.Ctx) error
+	MoveToColumn(*fiber.Ctx) error
 }
 
 func BoardRoutes(router fiber.Router, handler BoardHandler) fiber.Router {
@@ -23,6 +24,8 @@ func BoardRoutes(router fiber.Router, handler BoardHandler) fiber.Router {
 	boards.Post("/", handler.Store)       // создать новую доску
 	boards.Put("/:id", handler.Update)    // обновить доску
 	boards.Delete("/:id", handler.Delete) // удалить доску
+
+	boards.Put("/:id/columns/:column_id/move", handler.MoveToColumn) // переместить в колонку
 
 	return boards
 }
