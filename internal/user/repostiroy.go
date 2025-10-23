@@ -38,7 +38,7 @@ func (r *UserRepository) Get(ctx context.Context, id uint64) (*User, error) {
 	user := &User{}
 	row := r.storage.QueryRowContext(
 		ctx,
-		"SELECT id, email, name, created_at FROM users WHERE id = $1",
+		"SELECT id, email, name, created_at FROM users WHERE id = $1 AND deleted_at IS NULL",
 		id,
 	)
 
@@ -65,6 +65,7 @@ func (r *UserRepository) Update(ctx context.Context, user *User) error {
 	args = append(args, user.ID)
 	requiredFields++
 	query.WriteString(fmt.Sprintf(" WHERE id = $%d", requiredFields))
+	query.WriteString("AND deleted_at IS NULL")
 
 	res, err := r.storage.ExecContext(
 		ctx,

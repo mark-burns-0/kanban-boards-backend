@@ -10,8 +10,7 @@ type Config interface {
 
 func NewApp(cfg Config) *fiber.App {
 	app := fiber.New(fiber.Config{
-		AppName:               cfg.GetAppName(),
-		DisableStartupMessage: true,
+		AppName: cfg.GetAppName(),
 	})
 	return app
 }

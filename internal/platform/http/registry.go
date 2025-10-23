@@ -7,4 +7,5 @@ type Handlers struct {
 	routes.BoardHandler
 	routes.UserHandler
 	routes.CardHandler
+	routes.CommentHandler
 }

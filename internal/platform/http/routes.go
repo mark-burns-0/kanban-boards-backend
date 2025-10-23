@@ -20,6 +20,7 @@ func RegisterRoutes(r fiber.Router, handlers Handlers) {
 	routes.UserRoutes(v1, handlers.UserHandler)
 	routes.BoardRoutes(v1, handlers.BoardHandler)
 	routes.CardRoutes(v1, handlers.CardHandler)
+	routes.CommentRoutes(v1, handlers.CommentHandler)
 }
 
 func healthCheck(c *fiber.Ctx) error {

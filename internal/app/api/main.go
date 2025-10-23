@@ -4,6 +4,7 @@ import (
 	"backend/internal/auth"
 	"backend/internal/board"
 	"backend/internal/card"
+	"backend/internal/comment"
 	"backend/internal/platform/config"
 	"backend/internal/platform/http"
 	"backend/internal/platform/storage/postgres"
@@ -37,17 +38,20 @@ func Run() error {
 	// repositories
 	userRepo := user.NewUserRepository(storage)
 	authRepo := auth.NewAuthRepository(storage)
+	commentRepo := comment.NewCommentRepository(storage)
 
 	//services
 	userService := user.NewUserService(userRepo, config)
 	authService := auth.NewAuthService(authRepo, config)
+	commentService := comment.NewCommentService(commentRepo)
 
 	// handlers
 	handlers := http.Handlers{
-		AuthHandler:  auth.NewAuthHandler(validator, authService),
-		UserHandler:  user.NewUserHandler(validator, userService),
-		BoardHandler: board.NewBoardHandler(validator),
-		CardHandler:  card.NewCardHandler(validator),
+		AuthHandler:    auth.NewAuthHandler(validator, authService),
+		UserHandler:    user.NewUserHandler(validator, userService),
+		BoardHandler:   board.NewBoardHandler(validator),
+		CardHandler:    card.NewCardHandler(validator),
+		CommentHandler: comment.NewCommentHandler(validator, commentService),
 	}
 
 	app := http.NewApp(config)

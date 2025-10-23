@@ -28,7 +28,7 @@ func NewAuthRepository(storage Storage) *AuthRepository {
 
 func (r *AuthRepository) GetByEmail(ctx context.Context, email string) (*User, error) {
 	op := "auth.repository.get_by_email"
-	row := r.storage.QueryRowContext(ctx, "SELECT id, name, email, password, refresh_token FROM users WHERE email = $1", email)
+	row := r.storage.QueryRowContext(ctx, "SELECT id, name, email, password, refresh_token FROM users WHERE email = $1 AND deleted_at IS NULL", email)
 	user := &User{}
 	if err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.RefreshToken); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -59,7 +59,7 @@ func (r *AuthRepository) Create(ctx context.Context, user *User) error {
 func (r *AuthRepository) GetByRefreshToken(ctx context.Context, refreshToken string) (*User, error) {
 	op := "auth.repository.getByRefreshToken"
 	user := &User{}
-	row := r.storage.QueryRowContext(ctx, "SELECT id, refresh_token FROM users WHERE refresh_token = $1", refreshToken)
+	row := r.storage.QueryRowContext(ctx, "SELECT id, refresh_token FROM users WHERE refresh_token = $1 AND deleted_at IS NULL", refreshToken)
 
 	if err := row.Scan(&user.ID, &user.RefreshToken); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -72,7 +72,7 @@ func (r *AuthRepository) UpdateRefreshToken(ctx context.Context, userID uint64, 
 	op := "auth.repository.UpdateRefreshToken"
 	res, err := r.storage.ExecContext(
 		ctx,
-		"UPDATE users SET refresh_token = $1 WHERE id = $2",
+		"UPDATE users SET refresh_token = $1 WHERE id = $2 AND deleted_at IS NULL",
 		refreshToken, userID,
 	)
 	if err != nil {
