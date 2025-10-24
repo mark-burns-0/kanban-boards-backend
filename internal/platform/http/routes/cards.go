@@ -9,6 +9,7 @@ import (
 type CardHandler interface {
 	Create(*fiber.Ctx) error
 	Delete(*fiber.Ctx) error
+	Update(*fiber.Ctx) error
 	MoveToNewPosition(*fiber.Ctx) error
 }
 
@@ -20,6 +21,7 @@ func CardRoutes(router fiber.Router, h CardHandler) fiber.Router {
 
 	cardIDGroup := cards.Group("/:card_id")
 	cardIDGroup.Delete("/", h.Delete)
+	cardIDGroup.Put("/", h.Update)
 	cardIDGroup.Put("/move", h.MoveToNewPosition)
 
 	return cards

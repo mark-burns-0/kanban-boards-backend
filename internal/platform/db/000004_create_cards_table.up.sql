@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS cards (
     text TEXT NOT NULL,
     description TEXT,
     position INTEGER DEFAULT 0,
-    assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
     properties JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),

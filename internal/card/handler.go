@@ -20,6 +20,10 @@ func (h *CardHandler) Create(ctx *fiber.Ctx) error {
 	return nil
 }
 
+func (h *CardHandler) Update(ctx *fiber.Ctx) error {
+	return nil
+}
+
 func (h *CardHandler) Delete(ctx *fiber.Ctx) error {
 	return nil
 }

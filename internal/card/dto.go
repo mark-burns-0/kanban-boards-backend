@@ -45,11 +45,9 @@ type Card struct {
 }
 
 type CardRequest struct {
-	BoardID     uint64
-	ColumnID    uint64
-	Text        string
-	Description string
-	Position    uint64
-	AssignedTo  uint64
-	Properties  cardProperties
+	BoardID     uint64 `json:"board_id" validate:"required,min=1"`
+	ColumnID    uint64 `json:"column_id" validate:"required,min=1"`
+	Text        string `json:"text" validate:"required,min=1,max=255"`
+	Description string `json:"description" validate:"required,min=1,max=255"`
+	Position    uint64 `json:"position" validate:"required,min=1"`
 }
