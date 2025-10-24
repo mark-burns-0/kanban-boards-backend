@@ -38,18 +38,20 @@ func Run() error {
 	// repositories
 	userRepo := user.NewUserRepository(storage)
 	authRepo := auth.NewAuthRepository(storage)
+	boardRepo := board.NewBoardRepository(storage)
 	commentRepo := comment.NewCommentRepository(storage)
 
 	//services
 	userService := user.NewUserService(userRepo, config)
 	authService := auth.NewAuthService(authRepo, config)
+	boardService := board.NewBoardService(boardRepo)
 	commentService := comment.NewCommentService(commentRepo)
 
 	// handlers
 	handlers := http.Handlers{
 		AuthHandler:    auth.NewAuthHandler(validator, authService),
 		UserHandler:    user.NewUserHandler(validator, userService),
-		BoardHandler:   board.NewBoardHandler(validator),
+		BoardHandler:   board.NewBoardHandler(validator, boardService),
 		CardHandler:    card.NewCardHandler(validator),
 		CommentHandler: comment.NewCommentHandler(validator, commentService),
 	}

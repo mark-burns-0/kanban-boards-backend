@@ -5,7 +5,7 @@ import (
 )
 
 type Board struct {
-	ID          uint64
+	ID          string
 	UserID      uint64
 	Name        string
 	Description string
@@ -14,7 +14,9 @@ type Board struct {
 	DeletedAt   *time.Time
 }
 
-type BoardCreateRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+type BoardRequest struct {
+	UserID      uint64
+	ID          string
+	Name        string `json:"name" validate:"required,min=2,max=100"`
+	Description string `json:"description" validate:"required,min=2,max=1000"`
 }
