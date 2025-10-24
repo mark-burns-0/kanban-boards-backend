@@ -60,7 +60,9 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	if err := h.authService.Register(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.JSON(fiber.Map{"data": body})
+	return c.JSON(fiber.Map{
+		"message": "User registered successfully",
+	})
 }
 
 func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
