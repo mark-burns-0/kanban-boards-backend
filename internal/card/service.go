@@ -15,7 +15,7 @@ type CardCreator interface {
 
 type CardUpdater interface {
 	Update(context.Context, *Card) error
-	MoveToNewPosition(context.Context, string, uint64, uint64, uint64) error
+	MoveToNewPosition(context.Context, string, uint64, uint64, uint64, uint64) error
 }
 
 type CardDeleter interface {
@@ -95,6 +95,7 @@ func (s *CardService) MoveToNewPosition(ctx context.Context, request *CardMoveRe
 		ctx,
 		request.BoardID,
 		request.ID,
+		request.FromColumnID,
 		request.ToColumnID,
 		request.Position,
 	); err != nil {

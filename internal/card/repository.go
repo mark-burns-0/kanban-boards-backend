@@ -136,9 +136,12 @@ func (r *CardRepository) Delete(ctx context.Context, card *Card) error {
 }
 
 func (r *CardRepository) MoveToNewPosition(
-	ctx context.Context, boardID string, cardID, toColumnID, cardPosition uint64,
+	ctx context.Context, boardID string, cardID, fromColumnID, toColumnID, cardPosition uint64,
 ) error {
 	op := "card.repository.MoveToNewPosition"
+	if fromColumnID == toColumnID {
+		return nil
+	}
 	query := `
 		UPDATE cards SET column_id = $1, position = $2, updated_at = NOW()
 		WHERE id = $3 AND board_id = $4 AND deleted_at IS NULL

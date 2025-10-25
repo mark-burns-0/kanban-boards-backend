@@ -18,6 +18,7 @@ type BoardUpdater interface {
 
 type BoardDeleter interface {
 	Delete(ctx context.Context, uuid string) error
+	DeleteColumn(ctx context.Context, column *BoardColumn) error
 }
 
 type BoardGetter interface {

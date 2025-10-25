@@ -305,8 +305,23 @@ func (r *BoardRepository) DeleteColumn(ctx context.Context, column *BoardColumn)
 }
 
 func (r *BoardRepository) MoveToColumn(ctx context.Context, id string, columnID, fromPosition, toPosition uint64) error {
-	_ = "board.repository.MoveToColumn"
-	// query := `
-	// `
+	op := "board.repository.MoveToColumn"
+	if fromPosition == toPosition {
+		return nil
+	}
+	query := `
+		UPDATE board_columns SET position = $1, updated_at = NOW() WHERE id = $2 AND board_id = $3 AND deleted_at IS NULL
+	`
+	result, err := r.storage.ExecContext(ctx, query, toPosition, columnID, id)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if rowsAffected != 1 {
+		return fmt.Errorf("%s: %w", op, ErrColumnNotFound)
+	}
 	return nil
 }
