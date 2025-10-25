@@ -16,6 +16,13 @@ var attribute = map[string]string{
 	"text":                  "Text",
 	"is_private":            "Private",
 	"creator_id":            "Creator",
+	"color":                 "Color",
+	"tag":                   "Tag",
+	"board_id":              "Board",
+	"card_id":               "Card",
+	"description":           "Description",
+	"column_id":             "Column",
+	"position":              "Position",
 }
 
 func (p *Package) GetAttribute(field string) string {

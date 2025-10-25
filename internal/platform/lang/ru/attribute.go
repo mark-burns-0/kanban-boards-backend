@@ -13,6 +13,13 @@ var attribute = map[string]string{
 	"lastname":    "Фамилия",
 	"patronymic":  "Отчество",
 	"text":        "Текст",
+	"color":       "Цвет",
+	"tag":         "Тег",
+	"board_id":    "Доска",
+	"card_id":     "Карточка",
+	"description": "Описание",
+	"column_id":   "Столбец",
+	"position":    "Позиция",
 }
 
 func (p *Package) GetAttribute(field string) string {

@@ -3,6 +3,13 @@ package card
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
+)
+
+var (
+	ErrCardAlreadyExists = errors.New("card already exists")
+	ErrCardNotFound      = errors.New("card not found")
 )
 
 type Storage interface {
@@ -29,13 +36,108 @@ func NewCardRepository(
 	}
 }
 
-func (r *CardRepository) Create() {}
+func (r *CardRepository) Create(ctx context.Context, card *Card) error {
+	op := "card.repository.Create"
+	query := `
+		INSERT INTO cards (board_id, column_id, text, description, position, properties)
+		VALUES($1, $2, $3, $4, $5, $6)
+	`
+	result, err := r.storage.ExecContext(
+		ctx,
+		query,
+		card.BoardID,
+		card.ColumnID,
+		card.Text,
+		card.Description,
+		card.Position,
+		card.cardProperties,
+	)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if rowsAffected != 1 {
+		return fmt.Errorf("%s: %w", op, ErrCardAlreadyExists)
+	}
+	return nil
+}
 
-func (r *CardRepository) GetList() {}
+func (r *CardRepository) Update(ctx context.Context, card *Card) error {
+	op := "card.repository.Update"
 
-func (r *CardRepository) Delete(id uint64) {}
+	query := `
+		UPDATE cards
+		SET column_id = $1, position = $2, text = $3, description = $4, properties = $5
+		WHERE id = $6 AND board_id = $7 AND deleted_at IS NULL
+	`
+
+	result, err := r.storage.ExecContext(
+		ctx, query,
+		card.ColumnID,
+		card.Position,
+		card.Text,
+		card.Description,
+		card.cardProperties,
+		card.ID,
+		card.BoardID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if rowsAffected != 1 {
+		return fmt.Errorf("%s: %w", op, ErrCardNotFound)
+	}
+
+	return nil
+}
+
+func (r *CardRepository) GetList(ctx context.Context, boardID uint64) {
+	_ = "card.repository.GetList"
+
+}
+
+func (r *CardRepository) Delete(ctx context.Context, card *Card) error {
+	op := "card.repository.Delete"
+	var exists bool
+
+	row := r.storage.QueryRowContext(ctx,
+		"SELECT EXISTS (SELECT 1 FROM cards WHERE id = $1 AND board_id = $2)",
+		card.ID,
+		card.BoardID,
+	)
+	err := row.Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if !exists {
+		return fmt.Errorf("%s: %w", op, ErrCardNotFound)
+	}
+	query := `UPDATE cards SET deleted_at = NOW() WHERE id = $1 AND board_id = $2`
+	result, err := r.storage.ExecContext(ctx, query, card.ID, card.BoardID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if rowsAffected != 1 {
+		return fmt.Errorf("%s: %w", op, ErrCardNotFound)
+	}
+	return nil
+}
 
 func (r *CardRepository) MoveToNewPosition(
-	cardID, boardID, toColumnID, cardPosition uint64,
-) {
+	ctx context.Context, cardID, boardID, toColumnID, cardPosition uint64,
+) error {
+	_ = "card.repository.MoveToNewPosition"
+	return nil
 }

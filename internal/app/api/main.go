@@ -39,12 +39,14 @@ func Run() error {
 	userRepo := user.NewUserRepository(storage)
 	authRepo := auth.NewAuthRepository(storage)
 	boardRepo := board.NewBoardRepository(storage)
+	cardRepo := card.NewCardRepository(storage)
 	commentRepo := comment.NewCommentRepository(storage)
 
 	//services
 	userService := user.NewUserService(userRepo, config)
 	authService := auth.NewAuthService(authRepo, config)
 	boardService := board.NewBoardService(boardRepo)
+	cardService := card.NewCardService(cardRepo)
 	commentService := comment.NewCommentService(commentRepo)
 
 	// handlers
@@ -52,7 +54,7 @@ func Run() error {
 		AuthHandler:    auth.NewAuthHandler(validator, authService),
 		UserHandler:    user.NewUserHandler(validator, userService),
 		BoardHandler:   board.NewBoardHandler(validator, boardService),
-		CardHandler:    card.NewCardHandler(validator),
+		CardHandler:    card.NewCardHandler(validator, cardService),
 		CommentHandler: comment.NewCommentHandler(validator, commentService),
 	}
 
