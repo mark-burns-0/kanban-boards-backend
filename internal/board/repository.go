@@ -11,6 +11,7 @@ import (
 var (
 	ErrBoardAlreadyExists = errors.New("board already exists")
 	ErrBoardNotFound      = errors.New("board not found")
+	ErrColumnNotFound     = errors.New("column not found")
 )
 
 type Storage interface {
@@ -188,8 +189,11 @@ func (r *BoardRepository) Delete(ctx context.Context, uuid string) error {
 func (r *BoardRepository) GetColumnList(ctx context.Context, uuid string) ([]*BoardColumn, error) {
 	op := "board.repository.GetColumnList"
 	columnsRaw := []*BoardColumn{}
-
-	query := `SELECT id, board_id, name, color, position, created_at FROM board_columns bc WHERE board_id = $1`
+	query := `
+		SELECT id, board_id, name, color, position, created_at 
+		FROM board_columns bc WHERE board_id = $1 AND deleted_at IS NULL
+		ORDER BY position
+	`
 	rows, err := r.storage.QueryContext(ctx, query, uuid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -216,7 +220,7 @@ func (r *BoardRepository) GetColumnList(ctx context.Context, uuid string) ([]*Bo
 func (r *BoardRepository) CreateColumn(ctx context.Context, column *BoardColumn) error {
 	op := "board.repository.CreateColumn"
 	query := `
-		INSERT INTO board_columns (board_id, name, color, position) 
+		INSERT INTO board_columns (board_id, name, color, position)
 		VALUES ($1, $2, $3, $4)
 	`
 	result, err := r.storage.ExecContext(ctx, query, column.BoardID, column.Name, column.Color, column.Position)
@@ -236,11 +240,11 @@ func (r *BoardRepository) CreateColumn(ctx context.Context, column *BoardColumn)
 func (r *BoardRepository) UpdateColumn(ctx context.Context, column *BoardColumn) error {
 	op := "board.repository.UpdateColumn"
 	query := `
-		UPDATE board_columns 
-		SET 
+		UPDATE board_columns
+		SET
 			name = $1, color = $2, position = $3, updated_at = NOW()
-		WHERE 
-			board_id = $4 
+		WHERE
+			board_id = $4 AND id = $5
 			and deleted_at is NULL;
 	`
 	result, err := r.storage.ExecContext(
@@ -250,6 +254,7 @@ func (r *BoardRepository) UpdateColumn(ctx context.Context, column *BoardColumn)
 		column.Color,
 		column.Position,
 		column.BoardID,
+		column.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -260,6 +265,41 @@ func (r *BoardRepository) UpdateColumn(ctx context.Context, column *BoardColumn)
 	}
 	if rowsAffected != 1 {
 		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
+func (r *BoardRepository) DeleteColumn(ctx context.Context, column *BoardColumn) error {
+	op := "board.repository.DeleteColumn"
+	var exists bool
+	row := r.storage.QueryRowContext(
+		ctx,
+		"SELECT EXISTS(SELECT 1 FROM board_columns WHERE board_id = $1 AND id = $2)",
+		column.BoardID,
+		column.ID,
+	)
+	err := row.Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if !exists {
+		return fmt.Errorf("%s: %w", op, ErrColumnNotFound)
+	}
+	query := `
+		UPDATE board_columns SET
+			deleted_at = NOW()
+		WHERE board_id = $1 AND id = $2 AND deleted_at IS NULL
+	`
+	result, err := r.storage.ExecContext(ctx, query, column.BoardID, column.ID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if rowsAffected != 1 {
+		return fmt.Errorf("%s: %w", op, ErrColumnNotFound)
 	}
 	return nil
 }
