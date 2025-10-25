@@ -12,20 +12,29 @@ type BoardHandler interface {
 	Store(*fiber.Ctx) error
 	Update(*fiber.Ctx) error
 	Delete(*fiber.Ctx) error
+	CreateColumn(*fiber.Ctx) error
+	UpdateColumn(*fiber.Ctx) error
+	DeleteColumn(*fiber.Ctx) error
 	MoveToColumn(*fiber.Ctx) error
 }
 
 func BoardRoutes(router fiber.Router, handler BoardHandler) fiber.Router {
 	boards := router.Group("/boards").Use(middleware.AuthRequired)
 
-	boards.Get("/", handler.GetList)      // получить список досок
 	boards.Get("/:id", handler.GetByUUID) // получить доску по UUID
 
+	boards.Post("/list", handler.GetList) // получить список досок
 	boards.Post("/", handler.Store)       // создать новую доску
 	boards.Put("/:id", handler.Update)    // обновить доску
 	boards.Delete("/:id", handler.Delete) // удалить доску
 
-	boards.Put("/:id/columns/:column_id/move", handler.MoveToColumn) // переместить в колонку
+	// Работа с колонками
+	columns := boards.Group("/:id/columns")
+
+	columns.Post("/", handler.CreateColumn)
+	columns.Put("/:column_id", handler.UpdateColumn)
+	columns.Put("/:column_id/move", handler.MoveToColumn) // переместить в колонку
+	columns.Delete("/:column_id", handler.DeleteColumn)
 
 	return boards
 }

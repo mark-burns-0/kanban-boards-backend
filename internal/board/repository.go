@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 var (
@@ -38,8 +39,101 @@ func (r *BoardRepository) Get(ctx context.Context, uuid string) (*Board, error) 
 	return nil, nil
 }
 
-func (r *BoardRepository) GetList(ctx context.Context, userID uint64) ([]*Board, error) {
-	return nil, nil
+func (r *BoardRepository) GetList(
+	ctx context.Context,
+	filter *BoardGetFilter,
+) (*BoardListResult, error) {
+	op := "board.repository.GetList"
+	boards := []*Board{}
+	limit := filter.PerPage
+	offset := (filter.Page - 1) * filter.PerPage
+	query, params := buildQuery(filter)
+	params = append(params, limit, offset)
+	rows, err := r.storage.QueryContext(
+		ctx,
+		query,
+		params...,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		board := &Board{}
+		if err := rows.Scan(
+			&board.ID,
+			&board.Name,
+			&board.Description,
+			&board.CreatedAt,
+			&board.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		boards = append(boards, board)
+	}
+
+	var count uint64
+	countQuery := "SELECT COUNT(*) FROM boards WHERE user_id = $1 AND deleted_at IS NULL"
+	where := []string{}
+	params = []any{filter.UserID}
+	where, params, _ = addFilterToQuery(where, params, filter.FilterFields)
+	if len(where) > 0 {
+		countQuery += " AND " + strings.Join(where, " AND ")
+	}
+	row := r.storage.QueryRowContext(ctx, countQuery, params...)
+	err = row.Scan(&count)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	result := &BoardListResult{
+		Data:       boards,
+		TotalCount: count,
+	}
+
+	return result, nil
+}
+
+func buildQuery(filter *BoardGetFilter) (string, []any) {
+	var where []string
+	params := []any{filter.UserID}
+
+	baseQuery := `
+        SELECT id, name, description, created_at, updated_at
+        FROM boards
+        WHERE user_id = $1 AND deleted_at IS NULL
+    `
+
+	where, params, paramIndex := addFilterToQuery(where, params, filter.FilterFields)
+
+	if len(where) > 0 {
+		baseQuery += " AND " + strings.Join(where, " AND ")
+	}
+
+	baseQuery += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", paramIndex, paramIndex+1)
+
+	return baseQuery, params
+}
+
+func addFilterToQuery(
+	where []string,
+	params []any,
+	filter *Filters,
+) ([]string, []any, int) {
+	paramIndex := 2
+	if filter != nil {
+		if filter.Name != nil {
+			where = append(where, fmt.Sprintf("name ILIKE $%d", paramIndex))
+			params = append(params, "%"+*filter.Name+"%")
+			paramIndex++
+		}
+		if filter.Description != nil {
+			where = append(where, fmt.Sprintf("description ILIKE $%d", paramIndex))
+			params = append(params, "%"+*filter.Description+"%")
+			paramIndex++
+		}
+	}
+	return where, params, paramIndex
 }
 
 func (r *BoardRepository) Create(ctx context.Context, board *Board) error {
