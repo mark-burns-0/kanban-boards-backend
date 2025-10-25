@@ -71,7 +71,6 @@ func (r *BoardRepository) GetList(
 		}
 		boards = append(boards, board)
 	}
-
 	var count uint64
 	countQuery := "SELECT COUNT(*) FROM boards WHERE user_id = $1 AND deleted_at IS NULL"
 	where := []string{}
@@ -181,6 +180,85 @@ func (r *BoardRepository) Delete(ctx context.Context, uuid string) error {
 	query := "UPDATE boards SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL"
 	_, err = r.storage.ExecContext(ctx, query, uuid)
 	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
+func (r *BoardRepository) GetColumnList(ctx context.Context, uuid string) ([]*BoardColumn, error) {
+	op := "board.repository.GetColumnList"
+	columnsRaw := []*BoardColumn{}
+
+	query := `SELECT id, board_id, name, color, position, created_at FROM board_columns bc WHERE board_id = $1`
+	rows, err := r.storage.QueryContext(ctx, query, uuid)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		column := &BoardColumn{}
+		err := rows.Scan(
+			&column.ID,
+			&column.BoardID,
+			&column.Name,
+			&column.Color,
+			&column.Position,
+			&column.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		columnsRaw = append(columnsRaw, column)
+	}
+	return columnsRaw, nil
+}
+
+func (r *BoardRepository) CreateColumn(ctx context.Context, column *BoardColumn) error {
+	op := "board.repository.CreateColumn"
+	query := `
+		INSERT INTO board_columns (board_id, name, color, position) 
+		VALUES ($1, $2, $3, $4)
+	`
+	result, err := r.storage.ExecContext(ctx, query, column.BoardID, column.Name, column.Color, column.Position)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if rowsAffected != 1 {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
+func (r *BoardRepository) UpdateColumn(ctx context.Context, column *BoardColumn) error {
+	op := "board.repository.UpdateColumn"
+	query := `
+		UPDATE board_columns 
+		SET 
+			name = $1, color = $2, position = $3, updated_at = NOW()
+		WHERE 
+			board_id = $4 
+			and deleted_at is NULL;
+	`
+	result, err := r.storage.ExecContext(
+		ctx,
+		query,
+		column.Name,
+		column.Color,
+		column.Position,
+		column.BoardID,
+	)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if rowsAffected != 1 {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil

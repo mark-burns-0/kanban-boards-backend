@@ -33,7 +33,7 @@ func BoardRoutes(router fiber.Router, handler BoardHandler) fiber.Router {
 
 	columns.Post("/", handler.CreateColumn)
 	columns.Put("/:column_id", handler.UpdateColumn)
-	columns.Put("/:column_id/move", handler.MoveToColumn) // переместить в колонку
+	columns.Put("/:column_id/move", handler.MoveToColumn)
 	columns.Delete("/:column_id", handler.DeleteColumn)
 
 	return boards

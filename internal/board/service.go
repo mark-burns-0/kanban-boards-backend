@@ -8,6 +8,7 @@ import (
 
 type BoardCreator interface {
 	Create(ctx context.Context, board *Board) error
+	CreateColumn(ctx context.Context, column *BoardColumn) error
 }
 
 type BoardUpdater interface {
@@ -22,6 +23,7 @@ type BoardDeleter interface {
 type BoardGetter interface {
 	Get(ctx context.Context, uuid string) (*Board, error)
 	GetList(ctx context.Context, filter *BoardGetFilter) (*BoardListResult, error)
+	GetColumnList(ctx context.Context, uuid string) ([]*BoardColumn, error)
 }
 
 type BoardRepo interface {
@@ -62,7 +64,6 @@ func (s *BoardService) GetList(
 			},
 		)
 	}
-
 	totalPages := uint64(math.Ceil(float64(rawResp.TotalCount) / float64(filter.PerPage)))
 	hasPrev := filter.Page > 1
 	hasNext := filter.Page < totalPages

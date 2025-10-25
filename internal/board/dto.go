@@ -71,9 +71,17 @@ type BoardListResult struct {
 }
 
 type BoardColumnResponse struct {
-	ID       string `json:"id"`
 	BoardID  string `json:"board_id"`
 	Name     string `json:"name"`
 	Color    string `json:"color"`
 	Position uint64 `json:"position"`
+}
+
+type BoardColumn struct {
+	ID        uint64
+	Position  uint64
+	BoardID   string
+	Name      string
+	Color     string
+	CreatedAt time.Time
 }
