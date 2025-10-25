@@ -54,7 +54,6 @@ func (r *BoardRepository) GetList(
 		query,
 		params...,
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -90,28 +89,22 @@ func (r *BoardRepository) GetList(
 		Data:       boards,
 		TotalCount: count,
 	}
-
 	return result, nil
 }
 
 func buildQuery(filter *BoardGetFilter) (string, []any) {
 	var where []string
 	params := []any{filter.UserID}
-
 	baseQuery := `
         SELECT id, name, description, created_at, updated_at
         FROM boards
         WHERE user_id = $1 AND deleted_at IS NULL
     `
-
 	where, params, paramIndex := addFilterToQuery(where, params, filter.FilterFields)
-
 	if len(where) > 0 {
 		baseQuery += " AND " + strings.Join(where, " AND ")
 	}
-
 	baseQuery += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", paramIndex, paramIndex+1)
-
 	return baseQuery, params
 }
 

@@ -59,24 +59,20 @@ func (s *UserService) Current(ctx context.Context, userID uint64) (*UserResponse
 
 func (s *UserService) Update(ctx context.Context, userRequest *UserRequest, userID uint64) error {
 	op := "user.service.Update"
-
 	user := &User{
 		ID:    userID,
 		Name:  userRequest.Name,
 		Email: userRequest.Email,
 	}
-
 	if userRequest.Password != nil {
 		if userRequest.PasswordConfirmation == nil || *userRequest.Password != *userRequest.PasswordConfirmation {
 			return ErrPasswordMismatch
 		}
-
 		hashed, err := bcrypt.GenerateFromPassword([]byte(*userRequest.Password), 12)
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
 		user.Password = string(hashed)
 	}
-
 	return s.userRepo.Update(ctx, user)
 }

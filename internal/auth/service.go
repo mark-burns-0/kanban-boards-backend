@@ -60,23 +60,19 @@ func (r *AuthService) Register(ctx context.Context, userRequest *UserCreateReque
 	if user != nil {
 		return fmt.Errorf("user with email %s already exists", userRequest.Email)
 	}
-
 	power, err := strconv.Atoi(r.config.GetBcryptPower())
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(userRequest.Password), power)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-
 	newUser := User{
 		Name:     userRequest.Name,
 		Email:    userRequest.Email,
 		Password: string(hashedPassword),
 	}
-
 	return r.authRepo.Create(ctx, &newUser)
 }
 
@@ -86,12 +82,10 @@ func (r *AuthService) Login(ctx context.Context, userRequest *UserLoginRequest) 
 	if user == nil {
 		return nil, fmt.Errorf("%s: user with email %s not found", op, userRequest.Email)
 	}
-
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userRequest.Password))
 	if err != nil {
 		return nil, fmt.Errorf("%s: invalid password", op)
 	}
-
 	accessToken, err := r.generateToken(user, AccessTokenType)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -104,7 +98,6 @@ func (r *AuthService) Login(ctx context.Context, userRequest *UserLoginRequest) 
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-
 	return &TokensResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -114,15 +107,12 @@ func (r *AuthService) Login(ctx context.Context, userRequest *UserLoginRequest) 
 func (r *AuthService) RefreshToken(ctx context.Context, token string) (*TokensResponse, error) {
 	op := "auth.service.RefreshToken"
 	user, err := r.authRepo.GetByRefreshToken(ctx, token)
-
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-
 	if user == nil {
 		return nil, fmt.Errorf("%s: user with refresh token %s not found", op, token)
 	}
-
 	accessToken, err := r.generateToken(user, AccessTokenType)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -131,12 +121,10 @@ func (r *AuthService) RefreshToken(ctx context.Context, token string) (*TokensRe
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-
 	err = r.authRepo.UpdateRefreshToken(ctx, user.ID, refreshToken)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-
 	return &TokensResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -148,18 +136,15 @@ func (r *AuthService) generateToken(user *User, tokenType string) (string, error
 	if tokenType == "" {
 		return "", fmt.Errorf("token type is required")
 	}
-
 	tokenSecret, ttl, err := r.getTokenConfig(tokenType)
 	if err != nil {
 		return "", fmt.Errorf("%s: failed to get token config: %w", op, err)
 	}
-
 	key := []byte(tokenSecret)
 	duration, err := time.ParseDuration(ttl)
 	if err != nil {
 		return "", fmt.Errorf("%s: invalid TTL duration for %s token: %w", op, tokenType, err)
 	}
-
 	claims := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
 		jwt.MapClaims{
@@ -173,7 +158,6 @@ func (r *AuthService) generateToken(user *User, tokenType string) (string, error
 	if err != nil {
 		return "", fmt.Errorf("%s: failed to sign %s token: %w", op, tokenType, err)
 	}
-
 	return signedString, nil
 }
 

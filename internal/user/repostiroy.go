@@ -41,11 +41,9 @@ func (r *UserRepository) Get(ctx context.Context, id uint64) (*User, error) {
 		"SELECT id, email, name, created_at FROM users WHERE id = $1 AND deleted_at IS NULL",
 		id,
 	)
-
 	if err := row.Scan(&user.ID, &user.Email, &user.Name, &user.CreatedAt); err != nil {
 		return nil, fmt.Errorf("%s: %s", op, err.Error())
 	}
-
 	return user, nil
 }
 
@@ -55,7 +53,6 @@ func (r *UserRepository) Update(ctx context.Context, user *User) error {
 	requiredFields := 2
 	args := []any{}
 	args = append(args, user.Name, user.Email)
-
 	query.WriteString("UPDATE users SET name = $1, email = $2, updated_at = NOW()")
 	if user.Password != "" {
 		requiredFields++
@@ -66,7 +63,6 @@ func (r *UserRepository) Update(ctx context.Context, user *User) error {
 	requiredFields++
 	query.WriteString(fmt.Sprintf(" WHERE id = $%d", requiredFields))
 	query.WriteString("AND deleted_at IS NULL")
-
 	res, err := r.storage.ExecContext(
 		ctx,
 		query.String(),
@@ -75,11 +71,9 @@ func (r *UserRepository) Update(ctx context.Context, user *User) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-
 	affected, err := res.RowsAffected()
 	if affected == 0 {
 		return fmt.Errorf("%s: %w", op, ErrNotFound)
 	}
-
 	return nil
 }

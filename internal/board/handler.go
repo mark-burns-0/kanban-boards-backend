@@ -30,20 +30,17 @@ func (h *BoardHandler) GetList(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-
 	userID, ok := c.Locals(UserIDKey).(uint64)
 	if !ok {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid user ID"})
 	}
 	body.UserID = userID
-
 	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
 		if err != nil {
 			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-
 	response, err := h.service.GetList(c.Context(), body)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -56,18 +53,15 @@ func (h *BoardHandler) Store(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-
 	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
 		if err != nil {
 			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-
 	if err := h.service.Create(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-
 	return c.Status(fiber.StatusCreated).JSON(
 		fiber.Map{
 			"message": "Board created successfully",
@@ -102,11 +96,9 @@ func (h *BoardHandler) Delete(c *fiber.Ctx) error {
 	if uuid == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing board ID"})
 	}
-
 	if err := h.service.Delete(c.Context(), uuid); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": ErrBoardNotFound.Error()})
 	}
-
 	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{})
 }
 

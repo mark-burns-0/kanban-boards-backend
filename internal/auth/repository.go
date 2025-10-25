@@ -60,11 +60,9 @@ func (r *AuthRepository) GetByRefreshToken(ctx context.Context, refreshToken str
 	op := "auth.repository.getByRefreshToken"
 	user := &User{}
 	row := r.storage.QueryRowContext(ctx, "SELECT id, refresh_token FROM users WHERE refresh_token = $1 AND deleted_at IS NULL", refreshToken)
-
 	if err := row.Scan(&user.ID, &user.RefreshToken); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-
 	return user, nil
 }
 
