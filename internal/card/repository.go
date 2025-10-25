@@ -70,7 +70,7 @@ func (r *CardRepository) Update(ctx context.Context, card *Card) error {
 
 	query := `
 		UPDATE cards
-		SET column_id = $1, position = $2, text = $3, description = $4, properties = $5
+		SET column_id = $1, position = $2, text = $3, description = $4, properties = $5, updated_at = NOW()
 		WHERE id = $6 AND board_id = $7 AND deleted_at IS NULL
 	`
 
@@ -136,8 +136,30 @@ func (r *CardRepository) Delete(ctx context.Context, card *Card) error {
 }
 
 func (r *CardRepository) MoveToNewPosition(
-	ctx context.Context, cardID, boardID, toColumnID, cardPosition uint64,
+	ctx context.Context, boardID string, cardID, toColumnID, cardPosition uint64,
 ) error {
-	_ = "card.repository.MoveToNewPosition"
+	op := "card.repository.MoveToNewPosition"
+	query := `
+		UPDATE cards SET column_id = $1, position = $2, updated_at = NOW()
+		WHERE id = $3 AND board_id = $4 AND deleted_at IS NULL
+	`
+	result, err := r.storage.ExecContext(
+		ctx,
+		query,
+		toColumnID,
+		cardPosition,
+		cardID,
+		boardID,
+	)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if rowsAffected != 1 {
+		return fmt.Errorf("%s: %w", op, ErrCardNotFound)
+	}
 	return nil
 }

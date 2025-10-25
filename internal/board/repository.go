@@ -62,7 +62,6 @@ func (r *BoardRepository) Create(ctx context.Context, board *Board) error {
 func (r *BoardRepository) Update(ctx context.Context, board *Board) error {
 	op := "board.repository.Update"
 	query := "UPDATE boards SET name = $1, description = $2, updated_at = NOW() WHERE id = $3 AND deleted_at IS NULL"
-	fmt.Println(board)
 	result, err := r.storage.ExecContext(ctx, query, board.Name, board.Description, board.ID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -101,7 +100,8 @@ func (r *BoardRepository) Delete(ctx context.Context, uuid string) error {
 }
 
 func (r *BoardRepository) MoveToColumn(ctx context.Context, id string, columnID, fromPosition, toPosition uint64) error {
-	op := "board.repository.MoveToColumn"
-	fmt.Println(op)
+	_ = "board.repository.MoveToColumn"
+	// query := `
+	// `
 	return nil
 }
