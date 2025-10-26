@@ -35,19 +35,16 @@ func (h *CommentHandler) Create(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).
 			JSON(fiber.Map{"error": err.Error()})
 	}
-
 	if validationErrors, statusCode, err := h.validaotr.ValidateStruct(c, comment); validationErrors != nil {
 		if err != nil {
 			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-
 	if err := h.service.Create(c.Context(), comment); err != nil {
 		return c.Status(fiber.StatusInternalServerError).
 			JSON(fiber.Map{"error": err.Error()})
 	}
-
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{})
 }
 
@@ -66,7 +63,6 @@ func readBody(c *fiber.Ctx) (*CommentRequest, error) {
 	}
 	comment.UserID = user_id
 	comment.CardID = cardID
-
 	return comment, nil
 }
 
@@ -75,26 +71,22 @@ func (h *CommentHandler) Update(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
-
 	commentID := c.Params(CommentIDKey)
 	commentIDUint64, err := strconv.ParseUint(commentID, 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "comment_id not found"})
 	}
 	comment.ID = commentIDUint64
-
 	if validationErrors, statusCode, err := h.validaotr.ValidateStruct(c, comment); validationErrors != nil {
 		if err != nil {
 			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-
 	if err := h.service.Update(c.Context(), comment); err != nil {
 		return c.Status(fiber.StatusInternalServerError).
 			JSON(fiber.Map{"error": err.Error()})
 	}
-
 	return c.JSON(fiber.Map{
 		"message": "Comment updated successfully",
 	})
@@ -106,12 +98,10 @@ func (h *CommentHandler) Delete(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{})
 	}
-
 	if err := h.service.Delete(c.Context(), commentIDUint64); err != nil {
 		return c.Status(fiber.StatusNotFound).
 			JSON(fiber.Map{})
 	}
-
 	return c.Status(fiber.StatusNoContent).
 		JSON(fiber.Map{})
 }
