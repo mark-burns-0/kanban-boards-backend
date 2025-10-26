@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"math"
 	"slices"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type BoardCreator interface {
@@ -98,16 +100,29 @@ func (s *BoardService) GetList(
 
 func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*SingleBoardResponse[dto.CardWithComments], error) {
 	const op = "board.service.GetByUUID"
-	cards, err := s.cardService.GetListWithComments(ctx, boardUUID)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	rawBoard, err := s.repo.Get(ctx, boardUUID)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	rawColumns, err := s.repo.GetColumnList(ctx, boardUUID)
-	if err != nil {
+	var (
+		rawBoard   *Board
+		rawColumns []*BoardColumn
+		cards      []*dto.CardWithComments
+	)
+
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		result, err := s.cardService.GetListWithComments(ctx, boardUUID)
+		cards = result
+		return err
+	})
+	eg.Go(func() error {
+		result, err := s.repo.Get(ctx, boardUUID)
+		rawBoard = result
+		return err
+	})
+	eg.Go(func() error {
+		result, err := s.repo.GetColumnList(ctx, boardUUID)
+		rawColumns = result
+		return err
+	})
+	if err := eg.Wait(); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	var columns []*BoardColumnResponse

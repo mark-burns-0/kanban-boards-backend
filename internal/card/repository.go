@@ -136,7 +136,6 @@ func (r *CardRepository) Create(ctx context.Context, card *Card) error {
 
 func (r *CardRepository) Update(ctx context.Context, card *Card) error {
 	const op = "card.repository.Update"
-
 	query := `
 		UPDATE cards
 		SET column_id = $1, position = $2, text = $3, description = $4, properties = $5, updated_at = NOW()
