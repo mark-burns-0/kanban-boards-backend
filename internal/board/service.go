@@ -13,6 +13,7 @@ type BoardCreator interface {
 
 type BoardUpdater interface {
 	Update(ctx context.Context, board *Board) error
+	UpdateColumn(ctx context.Context, column *BoardColumn) error
 	MoveToColumn(ctx context.Context, id string, columnID, fromPosition, toPosition uint64) error
 }
 
@@ -116,6 +117,47 @@ func (s *BoardService) Update(ctx context.Context, board *BoardRequest) error {
 func (s *BoardService) Delete(ctx context.Context, boardUUID string) error {
 	op := "board.service.Delete"
 	if err := s.repo.Delete(ctx, boardUUID); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
+func (s *BoardService) CreateColumn(ctx context.Context, req *BoardColumnRequest) error {
+	op := "board.service.CreateColumn"
+	column := &BoardColumn{
+		BoardID:  req.BoardID,
+		Name:     req.Name,
+		Position: req.Position,
+		Color:    req.Color,
+	}
+	if err := s.repo.CreateColumn(ctx, column); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
+func (s *BoardService) UpdateColumn(ctx context.Context, req *BoardColumnRequest) error {
+	op := "board.service.UpdateColumn"
+	column := &BoardColumn{
+		ID:       req.ID,
+		BoardID:  req.BoardID,
+		Name:     req.Name,
+		Position: req.Position,
+		Color:    req.Color,
+	}
+	if err := s.repo.UpdateColumn(ctx, column); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
+func (s *BoardService) DeleteColumn(ctx context.Context, req *BoardColumnRequest) error {
+	op := "board.service.DeleteColumn"
+	column := &BoardColumn{
+		ID:      req.ID,
+		BoardID: req.BoardID,
+	}
+	if err := s.repo.DeleteColumn(ctx, column); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil

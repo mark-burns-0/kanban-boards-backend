@@ -278,16 +278,9 @@ func (r *BoardRepository) DeleteColumn(ctx context.Context, column *BoardColumn)
 			deleted_at = NOW()
 		WHERE board_id = $1 AND id = $2 AND deleted_at IS NULL
 	`
-	result, err := r.storage.ExecContext(ctx, query, column.BoardID, column.ID)
+	_, err = r.storage.ExecContext(ctx, query, column.BoardID, column.ID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
-	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if rowsAffected != 1 {
-		return fmt.Errorf("%s: %w", op, ErrColumnNotFound)
 	}
 	return nil
 }

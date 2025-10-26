@@ -21,13 +21,6 @@ type BoardRequest struct {
 	Description string `json:"description" validate:"required,min=2,max=1000"`
 }
 
-type BoardColumRequest struct {
-	BoardID  string `json:"board_id"`
-	Name     string `json:"name"`
-	Color    string `json:"color"`
-	Position uint64 `json:"position"`
-}
-
 type BoardResponse struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
@@ -68,6 +61,14 @@ type BoardListResponse struct {
 type BoardListResult struct {
 	Data       []*Board
 	TotalCount uint64
+}
+
+type BoardColumnRequest struct {
+	ID       uint64
+	BoardID  string `json:"board_id" validate:"required,uuid"`
+	Name     string `json:"name" validate:"required,min=2"`
+	Color    string `json:"color" validate:"required,hexcolor"`
+	Position uint64 `json:"position" validate:"required,min=1"`
 }
 
 type BoardColumnResponse struct {

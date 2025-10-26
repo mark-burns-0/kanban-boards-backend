@@ -3,13 +3,15 @@ package board
 import (
 	"backend/internal/shared/ports/http"
 	"backend/internal/shared/utils"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/k0kubun/pp"
 )
 
 const (
-	UserIDKey  = "userID"
-	BoardIDKey = "id"
+	BoardIDKey  = "id"
+	ColumnIDKey = "column_id"
 )
 
 type BoardHandler struct {
@@ -104,18 +106,84 @@ func (h *BoardHandler) Delete(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{})
 }
 
-func (h *BoardHandler) CreateColumn(*fiber.Ctx) error {
-	return nil
+func (h *BoardHandler) CreateColumn(c *fiber.Ctx) error {
+	body, err := utils.ParseBody[BoardColumnRequest](c)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	uuid := c.Params(BoardIDKey)
+	if uuid == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing board ID"})
+	}
+	body.BoardID = uuid
+
+	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
+		if err != nil {
+			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
+	}
+	if err := h.service.CreateColumn(c.Context(), body); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{})
 }
 
-func (h *BoardHandler) UpdateColumn(*fiber.Ctx) error {
-	return nil
+func (h *BoardHandler) UpdateColumn(c *fiber.Ctx) error {
+	body, err := utils.ParseBody[BoardColumnRequest](c)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	uuid := c.Params(BoardIDKey)
+	if uuid == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing board ID"})
+	}
+	body.BoardID = uuid
+	columnID := c.Params(ColumnIDKey)
+	columnIDUint64, err := strconv.ParseUint(columnID, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid column ID"})
+	}
+	body.ID = columnIDUint64
+	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
+		if err != nil {
+			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
+	}
+	if err := h.service.UpdateColumn(c.Context(), body); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.Status(fiber.StatusOK).JSON(
+		fiber.Map{
+			"message": "Column updated successfully",
+		},
+	)
 }
 
-func (h *BoardHandler) DeleteColumn(*fiber.Ctx) error {
-	return nil
+func (h *BoardHandler) DeleteColumn(c *fiber.Ctx) error {
+	body := &BoardColumnRequest{}
+	uuid := c.Params(BoardIDKey)
+	if uuid == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing board ID"})
+	}
+	columnID := c.Params(ColumnIDKey)
+	columnIDUint64, err := strconv.ParseUint(columnID, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid column ID"})
+	}
+	body.ID = columnIDUint64
+	body.BoardID = uuid
+
+	if err := h.service.DeleteColumn(c.Context(), body); err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{})
 }
 
 func (h *BoardHandler) MoveToColumn(c *fiber.Ctx) error {
+	pp.Println(c)
 	return nil
 }
