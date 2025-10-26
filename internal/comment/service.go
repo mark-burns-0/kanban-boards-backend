@@ -34,7 +34,7 @@ func NewCommentService(repository CommentRepo) *CommentService {
 }
 
 func (s *CommentService) Create(ctx context.Context, req *CommentRequest) error {
-	op := "comment.service.Create"
+	const op = "comment.service.Create"
 
 	comment := &Comment{
 		UserID: req.UserID,
@@ -49,7 +49,7 @@ func (s *CommentService) Create(ctx context.Context, req *CommentRequest) error 
 }
 
 func (s *CommentService) Update(ctx context.Context, req *CommentRequest) error {
-	op := "comment.service.Update"
+	const op = "comment.service.Update"
 
 	comment := &Comment{
 		ID:     req.ID,
@@ -65,7 +65,7 @@ func (s *CommentService) Update(ctx context.Context, req *CommentRequest) error 
 }
 
 func (s *CommentService) Delete(ctx context.Context, commentID uint64) error {
-	op := "comment.service.Delete"
+	const op = "comment.service.Delete"
 
 	if err := s.repository.Delete(ctx, commentID); err != nil {
 		return fmt.Errorf("%s: %w", op, err)

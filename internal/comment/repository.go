@@ -38,7 +38,7 @@ func NewCommentRepository(
 }
 
 func (r *CommentRepository) Create(ctx context.Context, comment *Comment) error {
-	op := "comment.repository.Create"
+	const op = "comment.repository.Create"
 	query := `INSERT INTO comments (card_id, user_id, text) VALUES($1, $2,$3)`
 	return utils.OpExec(
 		ctx,
@@ -52,7 +52,7 @@ func (r *CommentRepository) Create(ctx context.Context, comment *Comment) error 
 	)
 }
 func (r *CommentRepository) Update(ctx context.Context, comment *Comment) error {
-	op := "comment.repository.Update"
+	const op = "comment.repository.Update"
 	query := "UPDATE comments SET text = $1, updated_at = NOW() WHERE id = $2 AND card_id = $3 AND user_id = $4"
 	return utils.OpExec(
 		ctx,
@@ -68,7 +68,7 @@ func (r *CommentRepository) Update(ctx context.Context, comment *Comment) error 
 }
 
 func (r *CommentRepository) Delete(ctx context.Context, commentID uint64) error {
-	op := "comment.repository.Delete"
+	const op = "comment.repository.Delete"
 	existQuery := "SELECT EXISTS (SELECT 1 FROM comments WHERE id = $1)"
 	row := r.storage.QueryRowContext(ctx, existQuery, commentID)
 	var exists bool

@@ -34,7 +34,7 @@ func NewUserRepository(storage Storage) *UserRepository {
 }
 
 func (r *UserRepository) Get(ctx context.Context, id uint64) (*User, error) {
-	op := "user.repository.Get"
+	const op = "user.repository.Get"
 	user := &User{}
 	row := r.storage.QueryRowContext(
 		ctx,
@@ -48,7 +48,7 @@ func (r *UserRepository) Get(ctx context.Context, id uint64) (*User, error) {
 }
 
 func (r *UserRepository) Update(ctx context.Context, user *User) error {
-	op := "user.repository.Update"
+	const op = "user.repository.Update"
 	query := strings.Builder{}
 	requiredFields := 2
 	args := []any{}

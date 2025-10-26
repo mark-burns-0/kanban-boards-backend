@@ -38,7 +38,18 @@ func NewBoardHandler(validator http.Validator, lang LangMessage, boardService *B
 	}
 }
 
-func (h *BoardHandler) GetByUUID(c *fiber.Ctx) error { return nil }
+func (h *BoardHandler) GetByUUID(c *fiber.Ctx) error {
+	uuid := c.Params(BoardIDKey)
+	if uuid == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing board ID"})
+	}
+
+	response, err := h.boardService.GetByUUID(c.Context(), uuid)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(response)
+}
 
 func (h *BoardHandler) GetList(c *fiber.Ctx) error {
 	body, err := utils.ParseBody[BoardGetFilter](c)

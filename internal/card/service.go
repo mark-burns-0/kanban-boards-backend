@@ -1,12 +1,15 @@
 package card
 
 import (
+	"backend/internal/shared/dto"
+	"cmp"
 	"context"
 	"fmt"
+	"slices"
 )
 
 type CardGetter interface {
-	GetList(context.Context, uint64)
+	GetListWithComments(ctx context.Context, boardID string) ([]*CardWithComments, error)
 }
 
 type CardCreator interface {
@@ -23,6 +26,7 @@ type CardDeleter interface {
 }
 
 type CardRepo interface {
+	CardGetter
 	CardCreator
 	CardUpdater
 	CardDeleter
@@ -38,8 +42,50 @@ func NewCardService(repo CardRepo) *CardService {
 	}
 }
 
+func (s *CardService) GetListWithComments(ctx context.Context, boardID string) ([]*dto.CardWithComments, error) {
+	const op = "card.service.GetListWithComments"
+	raws, err := s.repo.GetListWithComments(ctx, boardID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	response := make([]*dto.CardWithComments, 0, len(raws))
+
+	for _, raw := range raws {
+		card := &dto.CardWithComments{
+			ID:          raw.ID,
+			ColumnID:    raw.ColumnID,
+			Position:    raw.Position,
+			BoardID:     raw.BoardID,
+			Text:        raw.Text,
+			Description: raw.Description,
+			CreatedAt:   raw.CreatedAt,
+			Properties: &dto.CardProperties{
+				Color: raw.cardProperties.Color,
+				Tag:   raw.cardProperties.Tag,
+			},
+			Comments: make([]*dto.CardComment, 0, len(raw.Comments)),
+		}
+		var comment *dto.CardComment
+		for _, rawComment := range raw.Comments {
+			comment = &dto.CardComment{
+				ID:        rawComment.ID,
+				CardID:    rawComment.CardID,
+				Text:      rawComment.Text,
+				CreatedAt: rawComment.CreatedAt,
+			}
+			card.Comments = append(card.Comments, comment)
+		}
+
+		response = append(response, card)
+	}
+	slices.SortFunc(response, func(a, b *dto.CardWithComments) int {
+		return cmp.Compare(*a.ID, *b.ID)
+	})
+	return response, nil
+}
+
 func (s *CardService) Create(ctx context.Context, request *CardRequest) error {
-	op := "card.service.Create"
+	const op = "card.service.Create"
 	card := &Card{
 		BoardID:     request.BoardID,
 		ColumnID:    request.ColumnID,
@@ -58,7 +104,7 @@ func (s *CardService) Create(ctx context.Context, request *CardRequest) error {
 }
 
 func (s *CardService) Update(ctx context.Context, request *CardRequest) error {
-	op := "card.service.Update"
+	const op = "card.service.Update"
 	card := &Card{
 		ID:          request.ID,
 		ColumnID:    request.ColumnID,
@@ -78,7 +124,7 @@ func (s *CardService) Update(ctx context.Context, request *CardRequest) error {
 }
 
 func (s *CardService) Delete(ctx context.Context, request *CardRequest) error {
-	op := "card.service.Delete"
+	const op = "card.service.Delete"
 	card := &Card{
 		ID:      request.ID,
 		BoardID: request.BoardID,
@@ -90,7 +136,7 @@ func (s *CardService) Delete(ctx context.Context, request *CardRequest) error {
 }
 
 func (s *CardService) MoveToNewPosition(ctx context.Context, request *CardMoveRequest) error {
-	op := "card.service.MoveToNewPosition"
+	const op = "card.service.MoveToNewPosition"
 	if err := s.repo.MoveToNewPosition(
 		ctx,
 		request.BoardID,

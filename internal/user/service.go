@@ -45,7 +45,7 @@ func NewUserService(userRepo UserRepo, config Config) *UserService {
 }
 
 func (s *UserService) Current(ctx context.Context, userID uint64) (*UserResponse, error) {
-	op := "user.service.Current"
+	const op = "user.service.Current"
 	user, err := s.userRepo.Get(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -58,7 +58,7 @@ func (s *UserService) Current(ctx context.Context, userID uint64) (*UserResponse
 }
 
 func (s *UserService) Update(ctx context.Context, userRequest *UserRequest, userID uint64) error {
-	op := "user.service.Update"
+	const op = "user.service.Update"
 	user := &User{
 		ID:    userID,
 		Name:  userRequest.Name,

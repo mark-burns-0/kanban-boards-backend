@@ -29,10 +29,10 @@ type BoardResponse struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-type SingleBoardResponse struct {
+type SingleBoardResponse[T any] struct {
 	*BoardResponse
-	Columns []BoardColumnResponse `json:"columns"`
-	Cards   []any                 `json:"cards"`
+	Columns []*BoardColumnResponse `json:"columns"`
+	Cards   []*T                   `json:"cards"`
 }
 
 type BoardGetFilter struct {
@@ -72,10 +72,12 @@ type BoardColumnRequest struct {
 }
 
 type BoardColumnResponse struct {
-	BoardID  string `json:"board_id"`
-	Name     string `json:"name"`
-	Color    string `json:"color"`
-	Position uint64 `json:"position"`
+	ID        uint64    `json:"id"`
+	Position  uint64    `json:"position"`
+	BoardID   string    `json:"board_id"`
+	Name      string    `json:"name"`
+	Color     string    `json:"color"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type BoardColumn struct {

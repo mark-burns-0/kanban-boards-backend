@@ -38,14 +38,28 @@ func NewBoardRepository(storage Storage) *BoardRepository {
 }
 
 func (r *BoardRepository) Get(ctx context.Context, uuid string) (*Board, error) {
-	return nil, nil
+	const op = "board.repository.Get"
+	query := "SELECT id, name, description, created_at, updated_at FROM boards WHERE id = $1"
+	board := &Board{}
+	row := r.storage.QueryRowContext(ctx, query, uuid)
+	err := row.Scan(
+		&board.ID,
+		&board.Name,
+		&board.Description,
+		&board.CreatedAt,
+		&board.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return board, nil
 }
 
 func (r *BoardRepository) GetList(
 	ctx context.Context,
 	filter *BoardGetFilter,
 ) (*BoardListResult, error) {
-	op := "board.repository.GetList"
+	const op = "board.repository.GetList"
 	boards := []*Board{}
 	limit := filter.PerPage
 	offset := (filter.Page - 1) * filter.PerPage
@@ -131,7 +145,7 @@ func addFilterToQuery(
 }
 
 func (r *BoardRepository) Create(ctx context.Context, board *Board) error {
-	op := "board.repository.Create"
+	const op = "board.repository.Create"
 	query := "INSERT INTO boards (name, description, user_id) VALUES ($1, $2, $3)"
 	return utils.OpExec(
 		ctx,
@@ -146,7 +160,7 @@ func (r *BoardRepository) Create(ctx context.Context, board *Board) error {
 }
 
 func (r *BoardRepository) Update(ctx context.Context, board *Board) error {
-	op := "board.repository.Update"
+	const op = "board.repository.Update"
 	query := "UPDATE boards SET name = $1, description = $2, updated_at = NOW() WHERE id = $3 AND deleted_at IS NULL"
 	return utils.OpExec(
 		ctx,
@@ -161,7 +175,7 @@ func (r *BoardRepository) Update(ctx context.Context, board *Board) error {
 }
 
 func (r *BoardRepository) Delete(ctx context.Context, uuid string) error {
-	op := "board.repository.Delete"
+	const op = "board.repository.Delete"
 	var exists bool
 	row := r.storage.QueryRowContext(
 		ctx,
@@ -184,12 +198,12 @@ func (r *BoardRepository) Delete(ctx context.Context, uuid string) error {
 }
 
 func (r *BoardRepository) GetColumnList(ctx context.Context, uuid string) ([]*BoardColumn, error) {
-	op := "board.repository.GetColumnList"
+	const op = "board.repository.GetColumnList"
 	columnsRaw := []*BoardColumn{}
 	query := `
-		SELECT id, board_id, name, color, position, created_at
+		SELECT id, board_id, position, name, color, created_at
 		FROM board_columns bc WHERE board_id = $1 AND deleted_at IS NULL
-		ORDER BY position
+		ORDER BY id
 	`
 	rows, err := r.storage.QueryContext(ctx, query, uuid)
 	if err != nil {
@@ -201,9 +215,9 @@ func (r *BoardRepository) GetColumnList(ctx context.Context, uuid string) ([]*Bo
 		err := rows.Scan(
 			&column.ID,
 			&column.BoardID,
+			&column.Position,
 			&column.Name,
 			&column.Color,
-			&column.Position,
 			&column.CreatedAt,
 		)
 		if err != nil {
@@ -215,7 +229,7 @@ func (r *BoardRepository) GetColumnList(ctx context.Context, uuid string) ([]*Bo
 }
 
 func (r *BoardRepository) CreateColumn(ctx context.Context, column *BoardColumn) error {
-	op := "board.repository.CreateColumn"
+	const op = "board.repository.CreateColumn"
 	query := `
 		INSERT INTO board_columns (board_id, name, color, position)
 		VALUES ($1, $2, $3, $4)
@@ -234,7 +248,7 @@ func (r *BoardRepository) CreateColumn(ctx context.Context, column *BoardColumn)
 }
 
 func (r *BoardRepository) UpdateColumn(ctx context.Context, column *BoardColumn) error {
-	op := "board.repository.UpdateColumn"
+	const op = "board.repository.UpdateColumn"
 	query := `
 		UPDATE board_columns
 		SET
@@ -258,7 +272,7 @@ func (r *BoardRepository) UpdateColumn(ctx context.Context, column *BoardColumn)
 }
 
 func (r *BoardRepository) DeleteColumn(ctx context.Context, column *BoardColumn) error {
-	op := "board.repository.DeleteColumn"
+	const op = "board.repository.DeleteColumn"
 	var exists bool
 	row := r.storage.QueryRowContext(
 		ctx,
@@ -286,7 +300,7 @@ func (r *BoardRepository) DeleteColumn(ctx context.Context, column *BoardColumn)
 }
 
 func (r *BoardRepository) MoveToColumn(ctx context.Context, id string, columnID, fromPosition, toPosition uint64) error {
-	op := "board.repository.MoveToColumn"
+	const op = "board.repository.MoveToColumn"
 	if fromPosition == toPosition {
 		return nil
 	}

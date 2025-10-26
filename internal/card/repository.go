@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 )
 
 var (
@@ -37,8 +38,83 @@ func NewCardRepository(
 	}
 }
 
+func (r *CardRepository) GetListWithComments(ctx context.Context, boardID string) ([]*CardWithComments, error) {
+	const op = "card.repository.GetListWithComment"
+	query := `
+		SELECT
+				cards.id,
+				cards.board_id,
+				cards.column_id,
+				cards.text,
+				cards.description,
+				cards.position,
+				cards.properties,
+				cards.created_at,
+				comments.id,
+				comments.card_id,
+				comments.text,
+				comments.created_at
+		FROM cards
+		LEFT JOIN comments ON comments.card_id = cards.id
+		WHERE cards.deleted_at is null and comments.deleted_at is NULL
+			and cards.board_id = $1
+	`
+	rows, err := r.storage.QueryContext(ctx, query, boardID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+
+	cardComments := make(map[uint64]*CardWithComments)
+	for rows.Next() {
+		var cardID, cardPosition, columnID, commentID, commentCardID *uint64
+		var boardID, cardText, cardDescription, commentText *string
+		var properties *cardProperties
+		var cardCreatedAt, commentCreatedAt *time.Time
+
+		err := rows.Scan(
+			&cardID, &boardID, &columnID, &cardText, &cardDescription, &cardPosition, &properties, &cardCreatedAt,
+			&commentID, &commentCardID, &commentText, &commentCreatedAt,
+		)
+		if err != nil {
+			fmt.Println(err)
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		if cardID == nil {
+			continue
+		}
+		_, ok := cardComments[*cardID]
+		if !ok {
+			cardComments[*cardID] = &CardWithComments{
+				ID:             cardID,
+				BoardID:        boardID,
+				ColumnID:       columnID,
+				Text:           cardText,
+				Description:    cardDescription,
+				Position:       cardPosition,
+				cardProperties: properties,
+				CreatedAt:      cardCreatedAt,
+				Comments:       []*CardComment{},
+			}
+		}
+		if commentID != nil {
+			cardComments[*cardID].Comments = append(cardComments[*cardID].Comments, &CardComment{
+				ID:        commentID,
+				CardID:    commentCardID,
+				Text:      commentText,
+				CreatedAt: commentCreatedAt,
+			})
+		}
+	}
+	cardWithComments := make([]*CardWithComments, 0, len(cardComments))
+	for _, card := range cardComments {
+		cardWithComments = append(cardWithComments, card)
+	}
+	return cardWithComments, nil
+}
+
 func (r *CardRepository) Create(ctx context.Context, card *Card) error {
-	op := "card.repository.Create"
+	const op = "card.repository.Create"
 	query := `
 		INSERT INTO cards (board_id, column_id, text, description, position, properties)
 		VALUES($1, $2, $3, $4, $5, $6)
@@ -59,7 +135,7 @@ func (r *CardRepository) Create(ctx context.Context, card *Card) error {
 }
 
 func (r *CardRepository) Update(ctx context.Context, card *Card) error {
-	op := "card.repository.Update"
+	const op = "card.repository.Update"
 
 	query := `
 		UPDATE cards
@@ -83,7 +159,7 @@ func (r *CardRepository) Update(ctx context.Context, card *Card) error {
 }
 
 func (r *CardRepository) Delete(ctx context.Context, card *Card) error {
-	op := "card.repository.Delete"
+	const op = "card.repository.Delete"
 	var exists bool
 
 	row := r.storage.QueryRowContext(ctx,
@@ -116,7 +192,7 @@ func (r *CardRepository) Delete(ctx context.Context, card *Card) error {
 func (r *CardRepository) MoveToNewPosition(
 	ctx context.Context, boardID string, cardID, fromColumnID, toColumnID, cardPosition uint64,
 ) error {
-	op := "card.repository.MoveToNewPosition"
+	const op = "card.repository.MoveToNewPosition"
 	if fromColumnID == toColumnID {
 		return nil
 	}

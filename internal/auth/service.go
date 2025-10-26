@@ -55,7 +55,7 @@ func NewAuthService(authRepo AuthRepo, config Config) *AuthService {
 }
 
 func (r *AuthService) Register(ctx context.Context, userRequest *UserCreateRequest) error {
-	op := "auth.service.Register"
+	const op = "auth.service.Register"
 	user, _ := r.authRepo.GetByEmail(ctx, userRequest.Email)
 	if user != nil {
 		return fmt.Errorf("user with email %s already exists", userRequest.Email)
@@ -77,7 +77,7 @@ func (r *AuthService) Register(ctx context.Context, userRequest *UserCreateReque
 }
 
 func (r *AuthService) Login(ctx context.Context, userRequest *UserLoginRequest) (*TokensResponse, error) {
-	op := "auth.service.Login"
+	const op = "auth.service.Login"
 	user, _ := r.authRepo.GetByEmail(ctx, userRequest.Email)
 	if user == nil {
 		return nil, fmt.Errorf("%s: user with email %s not found", op, userRequest.Email)
@@ -105,7 +105,7 @@ func (r *AuthService) Login(ctx context.Context, userRequest *UserLoginRequest) 
 }
 
 func (r *AuthService) RefreshToken(ctx context.Context, token string) (*TokensResponse, error) {
-	op := "auth.service.RefreshToken"
+	const op = "auth.service.RefreshToken"
 	user, err := r.authRepo.GetByRefreshToken(ctx, token)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -132,7 +132,7 @@ func (r *AuthService) RefreshToken(ctx context.Context, token string) (*TokensRe
 }
 
 func (r *AuthService) generateToken(user *User, tokenType string) (string, error) {
-	op := "auth.service.generateToken"
+	const op = "auth.service.generateToken"
 	if tokenType == "" {
 		return "", fmt.Errorf("token type is required")
 	}
@@ -162,7 +162,7 @@ func (r *AuthService) generateToken(user *User, tokenType string) (string, error
 }
 
 func (r *AuthService) getTokenConfig(tokenType string) (string, string, error) {
-	op := "auth.service.getTokenConfig"
+	const op = "auth.service.getTokenConfig"
 	switch tokenType {
 	case AccessTokenType:
 		return r.config.GetAccessTokenSecret(), r.config.GetAccessTokenTTL(), nil

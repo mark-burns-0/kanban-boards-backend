@@ -1,9 +1,12 @@
 package board
 
 import (
+	"backend/internal/shared/dto"
+	"cmp"
 	"context"
 	"fmt"
 	"math"
+	"slices"
 )
 
 type BoardCreator interface {
@@ -36,23 +39,25 @@ type BoardRepo interface {
 }
 
 type CardService interface {
-	GetListWithComments(ctx context.Context, boardID string) // ([]*CardWithComments, error)
+	GetListWithComments(ctx context.Context, boardID string) ([]*dto.CardWithComments, error)
 }
 
 type BoardService struct {
-	repo BoardRepo
+	repo        BoardRepo
+	cardService CardService
 }
 
-func NewBoardService(repo BoardRepo) *BoardService {
+func NewBoardService(repo BoardRepo, cardService CardService) *BoardService {
 	return &BoardService{
-		repo: repo,
+		repo:        repo,
+		cardService: cardService,
 	}
 }
 
 func (s *BoardService) GetList(
 	ctx context.Context, filter *BoardGetFilter,
 ) (*BoardListResponse, error) {
-	op := "board.service.GetList"
+	const op = "board.service.GetList"
 	rawResp, err := s.repo.GetList(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -91,8 +96,51 @@ func (s *BoardService) GetList(
 	return response, nil
 }
 
+func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*SingleBoardResponse[dto.CardWithComments], error) {
+	const op = "board.service.GetByUUID"
+	cards, err := s.cardService.GetListWithComments(ctx, boardUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	rawBoard, err := s.repo.Get(ctx, boardUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	rawColumns, err := s.repo.GetColumnList(ctx, boardUUID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	var columns []*BoardColumnResponse
+	for _, rawColumn := range rawColumns {
+		column := &BoardColumnResponse{
+			ID:        rawColumn.ID,
+			Name:      rawColumn.Name,
+			Color:     rawColumn.Color,
+			Position:  rawColumn.Position,
+			BoardID:   rawColumn.BoardID,
+			CreatedAt: rawColumn.CreatedAt,
+		}
+		columns = append(columns, column)
+	}
+	slices.SortFunc(columns, func(a, b *BoardColumnResponse) int {
+		return cmp.Compare(a.ID, b.ID)
+	})
+	board := &SingleBoardResponse[dto.CardWithComments]{
+		BoardResponse: &BoardResponse{
+			ID:          rawBoard.ID,
+			Name:        rawBoard.Name,
+			Description: rawBoard.Description,
+			CreatedAt:   rawBoard.CreatedAt,
+			UpdatedAt:   rawBoard.UpdatedAt,
+		},
+		Cards:   cards,
+		Columns: columns,
+	}
+	return board, nil
+}
+
 func (s *BoardService) Create(ctx context.Context, board *BoardRequest) error {
-	op := "board.service.Create"
+	const op = "board.service.Create"
 	data := &Board{
 		UserID:      board.UserID,
 		Name:        board.Name,
@@ -105,7 +153,7 @@ func (s *BoardService) Create(ctx context.Context, board *BoardRequest) error {
 }
 
 func (s *BoardService) Update(ctx context.Context, board *BoardRequest) error {
-	op := "board.service.Update"
+	const op = "board.service.Update"
 	data := &Board{
 		ID:          board.ID,
 		UserID:      board.UserID,
@@ -119,7 +167,7 @@ func (s *BoardService) Update(ctx context.Context, board *BoardRequest) error {
 }
 
 func (s *BoardService) Delete(ctx context.Context, boardUUID string) error {
-	op := "board.service.Delete"
+	const op = "board.service.Delete"
 	if err := s.repo.Delete(ctx, boardUUID); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -127,7 +175,7 @@ func (s *BoardService) Delete(ctx context.Context, boardUUID string) error {
 }
 
 func (s *BoardService) CreateColumn(ctx context.Context, req *BoardColumnRequest) error {
-	op := "board.service.CreateColumn"
+	const op = "board.service.CreateColumn"
 	column := &BoardColumn{
 		BoardID:  req.BoardID,
 		Name:     req.Name,
@@ -141,7 +189,7 @@ func (s *BoardService) CreateColumn(ctx context.Context, req *BoardColumnRequest
 }
 
 func (s *BoardService) UpdateColumn(ctx context.Context, req *BoardColumnRequest) error {
-	op := "board.service.UpdateColumn"
+	const op = "board.service.UpdateColumn"
 	column := &BoardColumn{
 		ID:       req.ID,
 		BoardID:  req.BoardID,
@@ -156,7 +204,7 @@ func (s *BoardService) UpdateColumn(ctx context.Context, req *BoardColumnRequest
 }
 
 func (s *BoardService) DeleteColumn(ctx context.Context, req *BoardColumnRequest) error {
-	op := "board.service.DeleteColumn"
+	const op = "board.service.DeleteColumn"
 	column := &BoardColumn{
 		ID:      req.ID,
 		BoardID: req.BoardID,
@@ -168,7 +216,7 @@ func (s *BoardService) DeleteColumn(ctx context.Context, req *BoardColumnRequest
 }
 
 func (s *BoardService) MoveToColumn(ctx context.Context, req *BoardColumnMoveRequest) error {
-	op := "board.service.MoveToColumn"
+	const op = "board.service.MoveToColumn"
 	if err := s.repo.MoveToColumn(
 		ctx,
 		req.BoardID,
