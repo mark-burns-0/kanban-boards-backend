@@ -2,6 +2,7 @@ package card
 
 import (
 	"backend/internal/shared/ports/http"
+	"backend/internal/shared/utils"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -25,7 +26,7 @@ func NewCardHandler(validator http.Validator, cardService *CardService) *CardHan
 }
 
 func (h *CardHandler) Create(c *fiber.Ctx) error {
-	body, err := bodyRead(c)
+	body, err := utils.ParseBody[CardRequest](c)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -47,7 +48,7 @@ func (h *CardHandler) Create(c *fiber.Ctx) error {
 }
 
 func (h *CardHandler) Update(c *fiber.Ctx) error {
-	body, err := bodyRead(c)
+	body, err := utils.ParseBody[CardRequest](c)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -91,17 +92,9 @@ func (h *CardHandler) Delete(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{})
 }
 
-func bodyRead(ctx *fiber.Ctx) (*CardRequest, error) {
-	board := &CardRequest{}
-	if err := ctx.BodyParser(board); err != nil {
-		return nil, err
-	}
-	return board, nil
-}
-
 func (h *CardHandler) MoveToNewPosition(c *fiber.Ctx) error {
-	body := &CardMoveRequest{}
-	if err := c.BodyParser(body); err != nil {
+	body, err := utils.ParseBody[CardMoveRequest](c)
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})

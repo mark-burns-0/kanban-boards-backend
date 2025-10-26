@@ -158,7 +158,7 @@ func (r *BoardRepository) Update(ctx context.Context, board *Board) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if rowsAffected != 1 {
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, ErrBoardNotFound)
 	}
 	return nil
 }
@@ -190,7 +190,7 @@ func (r *BoardRepository) GetColumnList(ctx context.Context, uuid string) ([]*Bo
 	op := "board.repository.GetColumnList"
 	columnsRaw := []*BoardColumn{}
 	query := `
-		SELECT id, board_id, name, color, position, created_at 
+		SELECT id, board_id, name, color, position, created_at
 		FROM board_columns bc WHERE board_id = $1 AND deleted_at IS NULL
 		ORDER BY position
 	`

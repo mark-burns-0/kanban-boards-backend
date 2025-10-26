@@ -2,12 +2,14 @@ package board
 
 import (
 	"backend/internal/shared/ports/http"
+	"backend/internal/shared/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 const (
-	UserIDKey = "userID"
+	UserIDKey  = "userID"
+	BoardIDKey = "id"
 )
 
 type BoardHandler struct {
@@ -25,22 +27,18 @@ func NewBoardHandler(validator http.Validator, service *BoardService) *BoardHand
 func (h *BoardHandler) GetByUUID(c *fiber.Ctx) error { return nil }
 
 func (h *BoardHandler) GetList(c *fiber.Ctx) error {
-	body := &BoardGetFilter{}
-	err := c.BodyParser(body)
+	body, err := utils.ParseBody[BoardGetFilter](c)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	userID, ok := c.Locals(UserIDKey).(uint64)
-	if !ok {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid user ID"})
-	}
-	body.UserID = userID
+
 	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
 		if err != nil {
 			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
+
 	response, err := h.service.GetList(c.Context(), body)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -49,16 +47,18 @@ func (h *BoardHandler) GetList(c *fiber.Ctx) error {
 }
 
 func (h *BoardHandler) Store(c *fiber.Ctx) error {
-	body, err := bodyRead(c)
+	body, err := utils.ParseBody[BoardRequest](c)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
+
 	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
 		if err != nil {
 			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
+
 	if err := h.service.Create(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -70,21 +70,23 @@ func (h *BoardHandler) Store(c *fiber.Ctx) error {
 }
 
 func (h *BoardHandler) Update(c *fiber.Ctx) error {
-	uuid := c.Params("id")
-	if uuid == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing board ID"})
-	}
-	body, err := bodyRead(c)
-	body.ID = uuid
+	body, err := utils.ParseBody[BoardRequest](c)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
+	uuid := c.Params(BoardIDKey)
+	if uuid == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing board ID"})
+	}
+	body.ID = uuid
+
 	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
 		if err != nil {
 			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
+
 	if err := h.service.Update(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -92,7 +94,7 @@ func (h *BoardHandler) Update(c *fiber.Ctx) error {
 }
 
 func (h *BoardHandler) Delete(c *fiber.Ctx) error {
-	uuid := c.Params("id")
+	uuid := c.Params(BoardIDKey)
 	if uuid == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing board ID"})
 	}
@@ -116,17 +118,4 @@ func (h *BoardHandler) DeleteColumn(*fiber.Ctx) error {
 
 func (h *BoardHandler) MoveToColumn(c *fiber.Ctx) error {
 	return nil
-}
-
-func bodyRead(c *fiber.Ctx) (*BoardRequest, error) {
-	body := &BoardRequest{}
-	if err := c.BodyParser(body); err != nil {
-		return nil, err
-	}
-	userID, ok := c.Locals(UserIDKey).(uint64)
-	if !ok {
-		return nil, fiber.ErrUnauthorized
-	}
-	body.UserID = userID
-	return body, nil
 }

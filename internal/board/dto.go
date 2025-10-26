@@ -55,7 +55,7 @@ type Filters struct {
 }
 
 type BoardListResponse struct {
-	Data        []*BoardResponse `json:"data,omitempty"`
+	Data        []*BoardResponse `json:"data"`
 	PerPage     uint64           `json:"per_page"`
 	CurrentPage uint64           `json:"current_page"`
 	NextPage    *uint64          `json:"next_page"`
