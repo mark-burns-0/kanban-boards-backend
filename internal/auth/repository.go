@@ -1,9 +1,16 @@
 package auth
 
 import (
+	"backend/internal/shared/utils"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+)
+
+var (
+	ErrUserNotFound      = errors.New("user not found")
+	ErrUserAlreadyExists = errors.New("user already exists")
 )
 
 type Storage interface {
@@ -38,22 +45,18 @@ func (r *AuthRepository) GetByEmail(ctx context.Context, email string) (*User, e
 
 func (r *AuthRepository) Create(ctx context.Context, user *User) error {
 	op := "auth.repository.create"
-	res, err := r.storage.ExecContext(
+	query := "INSERT INTO users (name, email, password, refresh_token) VALUES($1, $2, $3, $4)"
+	return utils.OpExec(
 		ctx,
-		"INSERT INTO users (name, email, password, refresh_token) VALUES($1, $2, $3, $4)",
-		user.Name, user.Email, user.Password, user.RefreshToken,
+		r.storage,
+		op,
+		query,
+		ErrUserAlreadyExists,
+		user.Name,
+		user.Email,
+		user.Password,
+		user.RefreshToken,
 	)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	rows, err := res.RowsAffected()
-	if rows != 1 {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	return nil
 }
 
 func (r *AuthRepository) GetByRefreshToken(ctx context.Context, refreshToken string) (*User, error) {
@@ -68,20 +71,14 @@ func (r *AuthRepository) GetByRefreshToken(ctx context.Context, refreshToken str
 
 func (r *AuthRepository) UpdateRefreshToken(ctx context.Context, userID uint64, refreshToken string) error {
 	op := "auth.repository.UpdateRefreshToken"
-	res, err := r.storage.ExecContext(
+	query := "UPDATE users SET refresh_token = $1 WHERE id = $2 AND deleted_at IS NULL"
+	return utils.OpExec(
 		ctx,
-		"UPDATE users SET refresh_token = $1 WHERE id = $2 AND deleted_at IS NULL",
-		refreshToken, userID,
+		r.storage,
+		op,
+		query,
+		ErrUserNotFound,
+		refreshToken,
+		userID,
 	)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	rows, err := res.RowsAffected()
-	if rows != 1 {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	return nil
 }
