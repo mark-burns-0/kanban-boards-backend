@@ -28,7 +28,6 @@ func setUserID(body any, c *fiber.Ctx) {
 	if !field.IsValid() || !field.CanSet() {
 		return
 	}
-
 	if userID, ok := c.Locals(UserIDKey).(uint64); ok && field.Kind() == reflect.Uint64 {
 		field.SetUint(userID)
 	}

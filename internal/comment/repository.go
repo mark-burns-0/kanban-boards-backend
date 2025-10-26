@@ -1,6 +1,7 @@
 package comment
 
 import (
+	"backend/internal/shared/utils"
 	"context"
 	"database/sql"
 	"errors"
@@ -8,8 +9,8 @@ import (
 )
 
 var (
-	ErrUnexpectedRowsAffected = errors.New("unexpected rows affected")
-	ErrNotFound               = errors.New("not found")
+	ErrCardNotFound         = errors.New("card not found")
+	ErrCommentAlreadyExists = errors.New("comment already exists")
 )
 
 type Storage interface {
@@ -39,40 +40,31 @@ func NewCommentRepository(
 func (r *CommentRepository) Create(ctx context.Context, comment *Comment) error {
 	op := "comment.repository.Create"
 	query := `INSERT INTO comments (card_id, user_id, text) VALUES($1, $2,$3)`
-	result, err := r.storage.ExecContext(
+	return utils.OpExec(
 		ctx,
+		r.storage,
+		op,
 		query,
+		ErrCommentAlreadyExists,
 		comment.CardID,
 		comment.UserID,
 		comment.Text,
 	)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if rowsAffected != 1 {
-		return fmt.Errorf("%s: %w", op, ErrUnexpectedRowsAffected)
-	}
-	return nil
 }
 func (r *CommentRepository) Update(ctx context.Context, comment *Comment) error {
 	op := "comment.repository.Update"
 	query := "UPDATE comments SET text = $1, updated_at = NOW() WHERE id = $2 AND card_id = $3 AND user_id = $4"
-	result, err := r.storage.ExecContext(ctx, query, comment.Text, comment.ID, comment.CardID, comment.UserID)
-	if err != nil {
-		return fmt.Errorf("%s:%w", op, err)
-	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if rowsAffected != 1 {
-		return fmt.Errorf("%s: %w", op, ErrUnexpectedRowsAffected)
-	}
-	return nil
+	return utils.OpExec(
+		ctx,
+		r.storage,
+		op,
+		query,
+		ErrCardNotFound,
+		comment.Text,
+		comment.ID,
+		comment.CardID,
+		comment.UserID,
+	)
 }
 
 func (r *CommentRepository) Delete(ctx context.Context, commentID uint64) error {
@@ -84,7 +76,7 @@ func (r *CommentRepository) Delete(ctx context.Context, commentID uint64) error 
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if !exists {
-		return fmt.Errorf("%s: %w", op, ErrNotFound)
+		return fmt.Errorf("%s: %w", op, ErrCardNotFound)
 	}
 	query := "UPDATE comments SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL"
 	_, err := r.storage.ExecContext(ctx, query, commentID)
