@@ -36,6 +36,6 @@ type CardMoveRequest struct {
 }
 
 type cardProperties struct {
-	Color string `json:"color,omitempty" validate:"max=255"`
+	Color string `json:"color,omitempty" validate:"hexcolor,max=255"`
 	Tag   string `json:"tag,omitempty" validate:"max=255"`
 }
