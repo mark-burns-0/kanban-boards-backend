@@ -1,6 +1,7 @@
 package board
 
 import (
+	"backend/internal/shared/utils"
 	"context"
 	"database/sql"
 	"errors"
@@ -132,35 +133,31 @@ func addFilterToQuery(
 func (r *BoardRepository) Create(ctx context.Context, board *Board) error {
 	op := "board.repository.Create"
 	query := "INSERT INTO boards (name, description, user_id) VALUES ($1, $2, $3)"
-	result, err := r.storage.ExecContext(ctx, query, board.Name, board.Description, board.UserID)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if rowsAffected != 1 {
-		return fmt.Errorf("%s: %w", op, ErrBoardAlreadyExists)
-	}
-	return nil
+	return utils.OpExec(
+		ctx,
+		r.storage,
+		op,
+		query,
+		ErrBoardAlreadyExists,
+		board.Name,
+		board.Description,
+		board.UserID,
+	)
 }
 
 func (r *BoardRepository) Update(ctx context.Context, board *Board) error {
 	op := "board.repository.Update"
 	query := "UPDATE boards SET name = $1, description = $2, updated_at = NOW() WHERE id = $3 AND deleted_at IS NULL"
-	result, err := r.storage.ExecContext(ctx, query, board.Name, board.Description, board.ID)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if rowsAffected != 1 {
-		return fmt.Errorf("%s: %w", op, ErrBoardNotFound)
-	}
-	return nil
+	return utils.OpExec(
+		ctx,
+		r.storage,
+		op,
+		query,
+		ErrBoardNotFound,
+		board.Name,
+		board.Description,
+		board.ID,
+	)
 }
 
 func (r *BoardRepository) Delete(ctx context.Context, uuid string) error {
@@ -223,18 +220,17 @@ func (r *BoardRepository) CreateColumn(ctx context.Context, column *BoardColumn)
 		INSERT INTO board_columns (board_id, name, color, position)
 		VALUES ($1, $2, $3, $4)
 	`
-	result, err := r.storage.ExecContext(ctx, query, column.BoardID, column.Name, column.Color, column.Position)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if rowsAffected != 1 {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	return nil
+	return utils.OpExec(
+		ctx,
+		r.storage,
+		op,
+		query,
+		ErrBoardNotFound,
+		column.BoardID,
+		column.Name,
+		column.Color,
+		column.Position,
+	)
 }
 
 func (r *BoardRepository) UpdateColumn(ctx context.Context, column *BoardColumn) error {
@@ -247,26 +243,18 @@ func (r *BoardRepository) UpdateColumn(ctx context.Context, column *BoardColumn)
 			board_id = $4 AND id = $5
 			and deleted_at is NULL;
 	`
-	result, err := r.storage.ExecContext(
+	return utils.OpExec(
 		ctx,
+		r.storage,
+		op,
 		query,
+		ErrColumnNotFound,
 		column.Name,
 		column.Color,
 		column.Position,
 		column.BoardID,
 		column.ID,
 	)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if rowsAffected != 1 {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	return nil
 }
 
 func (r *BoardRepository) DeleteColumn(ctx context.Context, column *BoardColumn) error {

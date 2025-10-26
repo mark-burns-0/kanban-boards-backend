@@ -143,6 +143,5 @@ func (r *CardRepository) MoveToNewPosition(
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
