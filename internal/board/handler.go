@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/k0kubun/pp"
 )
 
 const (
@@ -184,6 +183,32 @@ func (h *BoardHandler) DeleteColumn(c *fiber.Ctx) error {
 }
 
 func (h *BoardHandler) MoveToColumn(c *fiber.Ctx) error {
-	pp.Println(c)
-	return nil
+	body, err := utils.ParseBody[BoardColumnMoveRequest](c)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	uuid := c.Params(BoardIDKey)
+	if uuid == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing board ID"})
+	}
+	columnID := c.Params(ColumnIDKey)
+	columnIDUint64, err := strconv.ParseUint(columnID, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid column ID"})
+	}
+	body.BoardID = uuid
+	body.ColumnID = columnIDUint64
+
+	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
+		if err != nil {
+			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
+	}
+	if err := h.service.MoveToColumn(c.Context(), body); err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Column moved successfully",
+	})
 }

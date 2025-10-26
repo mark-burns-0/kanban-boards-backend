@@ -162,3 +162,17 @@ func (s *BoardService) DeleteColumn(ctx context.Context, req *BoardColumnRequest
 	}
 	return nil
 }
+
+func (s *BoardService) MoveToColumn(ctx context.Context, req *BoardColumnMoveRequest) error {
+	op := "board.service.MoveToColumn"
+	if err := s.repo.MoveToColumn(
+		ctx,
+		req.BoardID,
+		req.ColumnID,
+		req.FromPosition,
+		req.ToPosition,
+	); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}

@@ -86,3 +86,10 @@ type BoardColumn struct {
 	Color     string
 	CreatedAt time.Time
 }
+
+type BoardColumnMoveRequest struct {
+	BoardID      string `json:"board_id" validate:"required,uuid"`
+	ColumnID     uint64 `json:"column_id" validate:"required,min=1"`
+	FromPosition uint64 `json:"from_position" validate:"required,min=1"`
+	ToPosition   uint64 `json:"to_position" validate:"required,min=1"`
+}
