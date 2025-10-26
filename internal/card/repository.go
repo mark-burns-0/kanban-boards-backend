@@ -1,6 +1,7 @@
 package card
 
 import (
+	"backend/internal/shared/utils"
 	"context"
 	"database/sql"
 	"errors"
@@ -42,9 +43,12 @@ func (r *CardRepository) Create(ctx context.Context, card *Card) error {
 		INSERT INTO cards (board_id, column_id, text, description, position, properties)
 		VALUES($1, $2, $3, $4, $5, $6)
 	`
-	result, err := r.storage.ExecContext(
+	return utils.OpExec(
 		ctx,
+		r.storage,
+		op,
 		query,
+		ErrCardAlreadyExists,
 		card.BoardID,
 		card.ColumnID,
 		card.Text,
@@ -52,17 +56,6 @@ func (r *CardRepository) Create(ctx context.Context, card *Card) error {
 		card.Position,
 		card.cardProperties,
 	)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if rowsAffected != 1 {
-		return fmt.Errorf("%s: %w", op, ErrCardAlreadyExists)
-	}
-	return nil
 }
 
 func (r *CardRepository) Update(ctx context.Context, card *Card) error {
@@ -73,9 +66,12 @@ func (r *CardRepository) Update(ctx context.Context, card *Card) error {
 		SET column_id = $1, position = $2, text = $3, description = $4, properties = $5, updated_at = NOW()
 		WHERE id = $6 AND board_id = $7 AND deleted_at IS NULL
 	`
-
-	result, err := r.storage.ExecContext(
-		ctx, query,
+	return utils.OpExec(
+		ctx,
+		r.storage,
+		op,
+		query,
+		ErrCardNotFound,
 		card.ColumnID,
 		card.Position,
 		card.Text,
@@ -84,19 +80,6 @@ func (r *CardRepository) Update(ctx context.Context, card *Card) error {
 		card.ID,
 		card.BoardID,
 	)
-
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if rowsAffected != 1 {
-		return fmt.Errorf("%s: %w", op, ErrCardNotFound)
-	}
-
-	return nil
 }
 
 func (r *CardRepository) GetList(ctx context.Context, boardID uint64) {
@@ -146,23 +129,20 @@ func (r *CardRepository) MoveToNewPosition(
 		UPDATE cards SET column_id = $1, position = $2, updated_at = NOW()
 		WHERE id = $3 AND board_id = $4 AND deleted_at IS NULL
 	`
-	result, err := r.storage.ExecContext(
+	err := utils.OpExec(
 		ctx,
+		r.storage,
+		op,
 		query,
+		ErrCardNotFound,
 		toColumnID,
 		cardPosition,
 		cardID,
 		boardID,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return err
 	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if rowsAffected != 1 {
-		return fmt.Errorf("%s: %w", op, ErrCardNotFound)
-	}
+
 	return nil
 }
