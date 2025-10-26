@@ -82,11 +82,6 @@ func (r *CardRepository) Update(ctx context.Context, card *Card) error {
 	)
 }
 
-func (r *CardRepository) GetList(ctx context.Context, boardID uint64) {
-	_ = "card.repository.GetList"
-
-}
-
 func (r *CardRepository) Delete(ctx context.Context, card *Card) error {
 	op := "card.repository.Delete"
 	var exists bool

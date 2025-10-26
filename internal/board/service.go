@@ -35,6 +35,10 @@ type BoardRepo interface {
 	BoardGetter
 }
 
+type CardService interface {
+	GetListWithComments(ctx context.Context, boardID string) // ([]*CardWithComments, error)
+}
+
 type BoardService struct {
 	repo BoardRepo
 }

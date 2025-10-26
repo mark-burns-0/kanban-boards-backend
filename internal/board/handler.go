@@ -25,16 +25,16 @@ type LangMessage interface {
 }
 
 type BoardHandler struct {
-	validator http.Validator
-	lang      LangMessage
-	service   *BoardService
+	validator    http.Validator
+	lang         LangMessage
+	boardService *BoardService
 }
 
-func NewBoardHandler(validator http.Validator, lang LangMessage, service *BoardService) *BoardHandler {
+func NewBoardHandler(validator http.Validator, lang LangMessage, boardService *BoardService) *BoardHandler {
 	return &BoardHandler{
-		validator: validator,
-		lang:      lang,
-		service:   service,
+		validator:    validator,
+		lang:         lang,
+		boardService: boardService,
 	}
 }
 
@@ -53,7 +53,7 @@ func (h *BoardHandler) GetList(c *fiber.Ctx) error {
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
 
-	response, err := h.service.GetList(c.Context(), body)
+	response, err := h.boardService.GetList(c.Context(), body)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -73,7 +73,7 @@ func (h *BoardHandler) Store(c *fiber.Ctx) error {
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
 
-	if err := h.service.Create(c.Context(), body); err != nil {
+	if err := h.boardService.Create(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.Status(fiber.StatusCreated).JSON(
@@ -101,7 +101,7 @@ func (h *BoardHandler) Update(c *fiber.Ctx) error {
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
 
-	if err := h.service.Update(c.Context(), body); err != nil {
+	if err := h.boardService.Update(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.Status(fiber.StatusOK).JSON(
@@ -116,7 +116,7 @@ func (h *BoardHandler) Delete(c *fiber.Ctx) error {
 	if uuid == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing board ID"})
 	}
-	if err := h.service.Delete(c.Context(), uuid); err != nil {
+	if err := h.boardService.Delete(c.Context(), uuid); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": ErrBoardNotFound.Error()})
 	}
 	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{})
@@ -139,7 +139,7 @@ func (h *BoardHandler) CreateColumn(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-	if err := h.service.CreateColumn(c.Context(), body); err != nil {
+	if err := h.boardService.CreateColumn(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.Status(fiber.StatusCreated).JSON(
@@ -171,7 +171,7 @@ func (h *BoardHandler) UpdateColumn(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-	if err := h.service.UpdateColumn(c.Context(), body); err != nil {
+	if err := h.boardService.UpdateColumn(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.Status(fiber.StatusOK).JSON(
@@ -195,7 +195,7 @@ func (h *BoardHandler) DeleteColumn(c *fiber.Ctx) error {
 	body.ID = columnIDUint64
 	body.BoardID = uuid
 
-	if err := h.service.DeleteColumn(c.Context(), body); err != nil {
+	if err := h.boardService.DeleteColumn(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{})
@@ -224,7 +224,7 @@ func (h *BoardHandler) MoveToColumn(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-	if err := h.service.MoveToColumn(c.Context(), body); err != nil {
+	if err := h.boardService.MoveToColumn(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.Status(fiber.StatusOK).JSON(
