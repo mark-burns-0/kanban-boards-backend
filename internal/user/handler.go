@@ -2,6 +2,7 @@ package user
 
 import (
 	"backend/internal/shared/ports/http"
+	"context"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -10,17 +11,28 @@ const (
 	UserIDKey = "userID"
 )
 
+const (
+	UpdatedMessage = "updated"
+)
+
+type LangMessage interface {
+	GetResponseMessage(ctx context.Context, key string) string
+}
+
 type UserHandler struct {
 	validator   http.Validator
+	lang        LangMessage
 	userService *UserService
 }
 
 func NewUserHandler(
 	validator http.Validator,
+	lang LangMessage,
 	userService *UserService,
 ) *UserHandler {
 	return &UserHandler{
 		validator:   validator,
+		lang:        lang,
 		userService: userService,
 	}
 }
@@ -57,5 +69,9 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).
 			JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "User updated successfully"})
+	return c.Status(fiber.StatusCreated).JSON(
+		fiber.Map{
+			"message": h.lang.GetResponseMessage(c.Context(), UpdatedMessage),
+		},
+	)
 }

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"backend/internal/shared/ports/http"
+	"context"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -12,17 +13,24 @@ const (
 	BearerPrefix       = "Bearer "
 )
 
+type LangMessage interface {
+	GetResponseMessage(ctx context.Context, key string) string
+}
+
 type AuthHandler struct {
 	validator   http.Validator
+	lang        LangMessage
 	authService *AuthService
 }
 
 func NewAuthHandler(
 	validator http.Validator,
+	lang LangMessage,
 	authService *AuthService,
 ) *AuthHandler {
 	return &AuthHandler{
 		validator:   validator,
+		lang:        lang,
 		authService: authService,
 	}
 }

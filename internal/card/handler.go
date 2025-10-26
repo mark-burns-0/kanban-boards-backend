@@ -3,6 +3,7 @@ package card
 import (
 	"backend/internal/shared/ports/http"
 	"backend/internal/shared/utils"
+	"context"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -13,14 +14,26 @@ const (
 	BoardIDKey = "id"
 )
 
+const (
+	CreatedMessage = "created"
+	UpdatedMessage = "updated"
+	MovedMessage   = "moved"
+)
+
+type LangMessage interface {
+	GetResponseMessage(ctx context.Context, key string) string
+}
+
 type CardHandler struct {
 	validator   http.Validator
+	lang        LangMessage
 	cardService *CardService
 }
 
-func NewCardHandler(validator http.Validator, cardService *CardService) *CardHandler {
+func NewCardHandler(validator http.Validator, lang LangMessage, cardService *CardService) *CardHandler {
 	return &CardHandler{
 		validator:   validator,
+		lang:        lang,
 		cardService: cardService,
 	}
 }
@@ -42,7 +55,7 @@ func (h *CardHandler) Create(c *fiber.Ctx) error {
 	}
 	return c.Status(fiber.StatusCreated).JSON(
 		fiber.Map{
-			"message": "Card created successfully",
+			"message": h.lang.GetResponseMessage(c.Context(), CreatedMessage),
 		},
 	)
 }
@@ -70,9 +83,11 @@ func (h *CardHandler) Update(c *fiber.Ctx) error {
 	if err := h.cardService.Update(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Card updated successfully",
-	})
+	return c.Status(fiber.StatusOK).JSON(
+		fiber.Map{
+			"message": h.lang.GetResponseMessage(c.Context(), UpdatedMessage),
+		},
+	)
 }
 
 func (h *CardHandler) Delete(c *fiber.Ctx) error {
@@ -117,7 +132,9 @@ func (h *CardHandler) MoveToNewPosition(c *fiber.Ctx) error {
 			"error": err.Error(),
 		})
 	}
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Card moved successfully",
-	})
+	return c.Status(fiber.StatusOK).JSON(
+		fiber.Map{
+			"message": h.lang.GetResponseMessage(c.Context(), MovedMessage),
+		},
+	)
 }

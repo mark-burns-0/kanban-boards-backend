@@ -8,6 +8,7 @@ var messages = map[string]string{
 	"gte":      "Поле {field} должно быть больше или равно {param}.",
 	"lte":      "Поле {field} должно быть меньше или равно {param}.",
 	"eqfield":  "Поле {field} должно быть равно полью {param}.",
+	"hexcolor": "Поле {field} должно быть валидным шестнадцатеричным цветовым кодом.",
 }
 
 func (p *Package) GetMessages() map[string]string {

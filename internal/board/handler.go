@@ -3,6 +3,7 @@ package board
 import (
 	"backend/internal/shared/ports/http"
 	"backend/internal/shared/utils"
+	"context"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -13,14 +14,26 @@ const (
 	ColumnIDKey = "column_id"
 )
 
+const (
+	CreatedMessage = "created"
+	UpdatedMessage = "updated"
+	MovedMessage   = "moved"
+)
+
+type LangMessage interface {
+	GetResponseMessage(ctx context.Context, key string) string
+}
+
 type BoardHandler struct {
 	validator http.Validator
+	lang      LangMessage
 	service   *BoardService
 }
 
-func NewBoardHandler(validator http.Validator, service *BoardService) *BoardHandler {
+func NewBoardHandler(validator http.Validator, lang LangMessage, service *BoardService) *BoardHandler {
 	return &BoardHandler{
 		validator: validator,
+		lang:      lang,
 		service:   service,
 	}
 }
@@ -65,7 +78,7 @@ func (h *BoardHandler) Store(c *fiber.Ctx) error {
 	}
 	return c.Status(fiber.StatusCreated).JSON(
 		fiber.Map{
-			"message": "Board created successfully",
+			"message": h.lang.GetResponseMessage(c.Context(), CreatedMessage),
 		},
 	)
 }
@@ -91,7 +104,11 @@ func (h *BoardHandler) Update(c *fiber.Ctx) error {
 	if err := h.service.Update(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Board updated successfully"})
+	return c.Status(fiber.StatusOK).JSON(
+		fiber.Map{
+			"message": h.lang.GetResponseMessage(c.Context(), UpdatedMessage),
+		},
+	)
 }
 
 func (h *BoardHandler) Delete(c *fiber.Ctx) error {
@@ -125,8 +142,11 @@ func (h *BoardHandler) CreateColumn(c *fiber.Ctx) error {
 	if err := h.service.CreateColumn(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{})
+	return c.Status(fiber.StatusCreated).JSON(
+		fiber.Map{
+			"message": h.lang.GetResponseMessage(c.Context(), CreatedMessage),
+		},
+	)
 }
 
 func (h *BoardHandler) UpdateColumn(c *fiber.Ctx) error {
@@ -156,7 +176,7 @@ func (h *BoardHandler) UpdateColumn(c *fiber.Ctx) error {
 	}
 	return c.Status(fiber.StatusOK).JSON(
 		fiber.Map{
-			"message": "Column updated successfully",
+			"message": h.lang.GetResponseMessage(c.Context(), UpdatedMessage),
 		},
 	)
 }
@@ -178,7 +198,6 @@ func (h *BoardHandler) DeleteColumn(c *fiber.Ctx) error {
 	if err := h.service.DeleteColumn(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
-
 	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{})
 }
 
@@ -208,7 +227,9 @@ func (h *BoardHandler) MoveToColumn(c *fiber.Ctx) error {
 	if err := h.service.MoveToColumn(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Column moved successfully",
-	})
+	return c.Status(fiber.StatusOK).JSON(
+		fiber.Map{
+			"message": h.lang.GetResponseMessage(c.Context(), MovedMessage),
+		},
+	)
 }

@@ -15,6 +15,7 @@ import (
 type Language interface {
 	GetAttribute(string) string
 	GetMessages() map[string]string
+	GetResponseMessage(key string) string
 }
 
 type Registry struct {
@@ -39,10 +40,20 @@ func (r *Registry) GetLanguage(langCode string) Language {
 	return r.languages[r.defaultLang]
 }
 
+func (r *Registry) GetResponseMessage(ctx context.Context, key string) string {
+	locale, ok := ctx.Value("locale").(string)
+	if !ok {
+		locale = "en"
+	}
+	lang := r.GetLanguage(locale)
+	message := lang.GetResponseMessage(key)
+	return message
+}
+
 func (r *Registry) Validate(ctx context.Context, err error) (map[string]string, error) {
 	if err != nil {
 		errs := err.(validator.ValidationErrors)
-		humanReadableErrors, err := r.Translate(ctx, errs)
+		humanReadableErrors, err := r.translateValidation(ctx, errs)
 		if err != nil {
 			slog.Error("Error localizing validation messages: " + err.Error())
 
@@ -55,8 +66,8 @@ func (r *Registry) Validate(ctx context.Context, err error) (map[string]string, 
 	return nil, nil
 }
 
-// Translate переводит validation сообщение
-func (r *Registry) Translate(
+// translateValidation переводит validation сообщение
+func (r *Registry) translateValidation(
 	ctx context.Context,
 	errs validator.ValidationErrors,
 ) (map[string]string, error) {

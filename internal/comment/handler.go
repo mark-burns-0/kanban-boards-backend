@@ -2,6 +2,7 @@ package comment
 
 import (
 	"backend/internal/shared/ports/http"
+	"context"
 	"errors"
 	"strconv"
 
@@ -14,17 +15,29 @@ const (
 	CommentIDKey = "comment_id"
 )
 
+const (
+	CreatedMessage = "created"
+	UpdatedMessage = "updated"
+)
+
+type LangMessage interface {
+	GetResponseMessage(ctx context.Context, key string) string
+}
+
 type CommentHandler struct {
 	validaotr http.Validator
+	lang      LangMessage
 	service   *CommentService
 }
 
 func NewCommentHandler(
 	validator http.Validator,
+	lang LangMessage,
 	service *CommentService,
 ) *CommentHandler {
 	return &CommentHandler{
 		validaotr: validator,
+		lang:      lang,
 		service:   service,
 	}
 }
@@ -45,7 +58,11 @@ func (h *CommentHandler) Create(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).
 			JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{})
+	return c.Status(fiber.StatusCreated).JSON(
+		fiber.Map{
+			"message": h.lang.GetResponseMessage(c.Context(), CreatedMessage),
+		},
+	)
 }
 
 func readBody(c *fiber.Ctx) (*CommentRequest, error) {
@@ -87,9 +104,11 @@ func (h *CommentHandler) Update(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).
 			JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.JSON(fiber.Map{
-		"message": "Comment updated successfully",
-	})
+	return c.Status(fiber.StatusOK).JSON(
+		fiber.Map{
+			"message": h.lang.GetResponseMessage(c.Context(), UpdatedMessage),
+		},
+	)
 }
 
 func (h *CommentHandler) Delete(c *fiber.Ctx) error {
@@ -102,6 +121,5 @@ func (h *CommentHandler) Delete(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).
 			JSON(fiber.Map{})
 	}
-	return c.Status(fiber.StatusNoContent).
-		JSON(fiber.Map{})
+	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{})
 }

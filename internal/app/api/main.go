@@ -7,6 +7,7 @@ import (
 	"backend/internal/comment"
 	"backend/internal/platform/config"
 	"backend/internal/platform/http"
+	"backend/internal/platform/lang"
 	"backend/internal/platform/storage/postgres"
 	"backend/internal/platform/validation"
 	"backend/internal/user"
@@ -27,6 +28,7 @@ type Storage interface {
 
 func Run() error {
 	validator := validation.New()
+	lang := lang.NewRegistry()
 	config := config.NewConfig()
 	config.SetLogger()
 	storage, err := postgres.NewStorage(config)
@@ -51,11 +53,11 @@ func Run() error {
 
 	// handlers
 	handlers := http.Handlers{
-		AuthHandler:    auth.NewAuthHandler(validator, authService),
-		UserHandler:    user.NewUserHandler(validator, userService),
-		BoardHandler:   board.NewBoardHandler(validator, boardService),
-		CardHandler:    card.NewCardHandler(validator, cardService),
-		CommentHandler: comment.NewCommentHandler(validator, commentService),
+		AuthHandler:    auth.NewAuthHandler(validator, lang, authService),
+		UserHandler:    user.NewUserHandler(validator, lang, userService),
+		BoardHandler:   board.NewBoardHandler(validator, lang, boardService),
+		CardHandler:    card.NewCardHandler(validator, lang, cardService),
+		CommentHandler: comment.NewCommentHandler(validator, lang, commentService),
 	}
 
 	app := http.NewApp(config)
