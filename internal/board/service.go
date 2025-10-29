@@ -31,6 +31,8 @@ type BoardGetter interface {
 	Get(ctx context.Context, uuid string) (*Board, error)
 	GetList(ctx context.Context, filter *BoardGetFilter) (*BoardListResult, error)
 	GetColumnList(ctx context.Context, uuid string) ([]*BoardColumn, error)
+	Exists(ctx context.Context, uuid string) (bool, error)
+	ExistsColumn(ctx context.Context, column *BoardColumn) (bool, error)
 }
 
 type BoardRepo interface {
@@ -183,6 +185,13 @@ func (s *BoardService) Update(ctx context.Context, board *BoardRequest) error {
 
 func (s *BoardService) Delete(ctx context.Context, boardUUID string) error {
 	const op = "board.service.Delete"
+	exists, err := s.repo.Exists(ctx, boardUUID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if !exists {
+		return fmt.Errorf("%s: %w", op, ErrBoardNotFound)
+	}
 	if err := s.repo.Delete(ctx, boardUUID); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -223,6 +232,13 @@ func (s *BoardService) DeleteColumn(ctx context.Context, req *BoardColumnRequest
 	column := &BoardColumn{
 		ID:      req.ID,
 		BoardID: req.BoardID,
+	}
+	exists, err := s.repo.ExistsColumn(ctx, column)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if !exists {
+		return fmt.Errorf("%s: %w", op, ErrColumnNotFound)
 	}
 	if err := s.repo.DeleteColumn(ctx, column); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
