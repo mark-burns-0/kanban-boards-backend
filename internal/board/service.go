@@ -31,6 +31,7 @@ type BoardGetter interface {
 	Get(ctx context.Context, uuid string) (*Board, error)
 	GetList(ctx context.Context, filter *BoardGetFilter) (*BoardListResult, error)
 	GetColumnList(ctx context.Context, uuid string) ([]*BoardColumn, error)
+	GetMaxPositionValue(ctx context.Context, uuid string) (uint64, error)
 	Exists(ctx context.Context, uuid string) (bool, error)
 	ExistsColumn(ctx context.Context, column *BoardColumn) (bool, error)
 }
@@ -248,6 +249,19 @@ func (s *BoardService) DeleteColumn(ctx context.Context, req *BoardColumnRequest
 
 func (s *BoardService) MoveToColumn(ctx context.Context, req *BoardColumnMoveRequest) error {
 	const op = "board.service.MoveToColumn"
+	if req.FromPosition == req.ToPosition {
+		return nil
+	}
+	if req.FromPosition <= 0 || req.ToPosition <= 0 {
+		return fmt.Errorf("%s: %w", op, ErrInvalidPosition)
+	}
+	maxValue, err := s.repo.GetMaxPositionValue(ctx, req.BoardID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if req.FromPosition > maxValue || req.ToPosition > maxValue {
+		return fmt.Errorf("%s: %w", op, ErrInvalidPosition)
+	}
 	if err := s.repo.MoveToColumn(
 		ctx,
 		req.BoardID,
