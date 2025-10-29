@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 )
 
 var (
@@ -21,16 +20,39 @@ type Storage interface {
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
+	GetDB() *sql.DB
 }
 
 type UserRepository struct {
-	storage Storage
+	storage                Storage
+	updateStmt             *sql.Stmt
+	updateWithPasswordStmt *sql.Stmt
 }
 
-func NewUserRepository(storage Storage) *UserRepository {
-	return &UserRepository{
+func NewUserRepository(storage Storage) (*UserRepository, error) {
+	const op = "user.repository.NewUserRepository"
+	var err error
+	repo := &UserRepository{
 		storage: storage,
 	}
+
+	repo.updateStmt, err = storage.GetDB().Prepare(`
+		UPDATE users SET name = $1, email = $2, updated_at = NOW() 
+		WHERE id = $3 AND deleted_at IS NULL
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	repo.updateWithPasswordStmt, err = storage.GetDB().Prepare(`
+		UPDATE users SET name = $1, email = $2, password = $3, updated_at = NOW()  
+		WHERE id = $4 AND deleted_at IS NULL 
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return repo, nil
 }
 
 func (r *UserRepository) Get(ctx context.Context, id uint64) (*User, error) {
@@ -49,25 +71,19 @@ func (r *UserRepository) Get(ctx context.Context, id uint64) (*User, error) {
 
 func (r *UserRepository) Update(ctx context.Context, user *User) error {
 	const op = "user.repository.Update"
-	query := strings.Builder{}
-	requiredFields := 2
-	args := []any{}
-	args = append(args, user.Name, user.Email)
-	query.WriteString("UPDATE users SET name = $1, email = $2, updated_at = NOW()")
 	if user.Password != "" {
-		requiredFields++
-		query.WriteString(fmt.Sprintf(", password = $%d", requiredFields))
-		args = append(args, user.Password)
+		res, err := r.updateWithPasswordStmt.ExecContext(
+			ctx, user.Name, user.Email, user.Password, user.ID,
+		)
+		return handleQueryExec(op, res, err)
 	}
-	args = append(args, user.ID)
-	requiredFields++
-	query.WriteString(fmt.Sprintf(" WHERE id = $%d", requiredFields))
-	query.WriteString("AND deleted_at IS NULL")
-	res, err := r.storage.ExecContext(
-		ctx,
-		query.String(),
-		args...,
+	res, err := r.updateStmt.ExecContext(
+		ctx, user.Name, user.Email, user.ID,
 	)
+	return handleQueryExec(op, res, err)
+}
+
+func handleQueryExec(op string, res sql.Result, err error) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

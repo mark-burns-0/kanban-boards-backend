@@ -78,6 +78,10 @@ func (s *Storage) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, er
 	return s.db.BeginTx(ctx, opts)
 }
 
+func (s *Storage) GetDB() *sql.DB {
+	return s.db
+}
+
 func buildDSN(cfg StorageConfig) string {
 	dsn := strings.Builder{}
 	dsn.WriteString("postgres://")

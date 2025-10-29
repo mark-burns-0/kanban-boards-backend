@@ -13,6 +13,7 @@ var (
 	ErrBoardAlreadyExists = errors.New("board already exists")
 	ErrBoardNotFound      = errors.New("board not found")
 	ErrColumnNotFound     = errors.New("column not found")
+	ErrInvalidPosition    = errors.New("invalid position")
 )
 
 type Storage interface {
@@ -301,22 +302,69 @@ func (r *BoardRepository) DeleteColumn(ctx context.Context, column *BoardColumn)
 
 func (r *BoardRepository) MoveToColumn(ctx context.Context, id string, columnID, fromPosition, toPosition uint64) error {
 	const op = "board.repository.MoveToColumn"
+	tx, err := r.storage.BeginTx(ctx, &sql.TxOptions{})
+	defer tx.Rollback()
 	if fromPosition == toPosition {
 		return nil
 	}
-	query := `
-		UPDATE board_columns SET position = $1, updated_at = NOW() WHERE id = $2 AND board_id = $3 AND deleted_at IS NULL
-	`
-	result, err := r.storage.ExecContext(ctx, query, toPosition, columnID, id)
+	if fromPosition <= 0 || toPosition <= 0 {
+		return fmt.Errorf("%s: %w", op, ErrInvalidPosition)
+	}
+	var maxPosition sql.NullInt64
+	var query string
+	query = "SELECT MAX(position) FROM board_columns WHERE board_id = $1 AND deleted_at IS NULL"
+	row := tx.QueryRowContext(
+		ctx,
+		query,
+		id,
+	)
+	err = row.Scan(&maxPosition)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	rowsAffected, err := result.RowsAffected()
+	if !maxPosition.Valid {
+		return fmt.Errorf("")
+	}
+	if fromPosition > uint64(maxPosition.Int64) || toPosition > uint64(maxPosition.Int64) {
+		return fmt.Errorf("%s: %w", op, ErrInvalidPosition)
+	}
+	query = `update board_columns set position = $1 WHERE position = $2 AND board_id = $3 AND deleted_at is null`
+	res, err := tx.ExecContext(ctx, query, -fromPosition, fromPosition, id)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return err
 	}
-	if rowsAffected != 1 {
-		return fmt.Errorf("%s: %w", op, ErrColumnNotFound)
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
 	}
-	return nil
+	if rowsAffected == 0 {
+		return fmt.Errorf("nothing updated")
+	}
+	var moveQuery string
+	if fromPosition < toPosition { // move to right
+		moveQuery = `update board_columns set position = position - 1 where position > $1 AND position <= $2 and board_id = $3 and deleted_at is null`
+	} else { // move to left
+		moveQuery = `update board_columns set position = position + 1 where position < $1 and position >= $2 and board_id = $3 and deleted_at is null`
+	}
+	res, err = tx.ExecContext(ctx, moveQuery, fromPosition, toPosition, id)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err = res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	query = `update board_columns set position = $1 WHERE position = $2 AND board_id = $3 AND deleted_at is null`
+	res, err = tx.ExecContext(ctx, query, toPosition, -fromPosition, id)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err = res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("nothing updated")
+	}
+	return tx.Commit()
 }

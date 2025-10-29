@@ -38,7 +38,10 @@ func Run() error {
 	}
 
 	// repositories
-	userRepo := user.NewUserRepository(storage)
+	userRepo, err := user.NewUserRepository(storage)
+	if err != nil {
+		return err
+	}
 	authRepo := auth.NewAuthRepository(storage)
 	boardRepo := board.NewBoardRepository(storage)
 	cardRepo := card.NewCardRepository(storage)
@@ -62,29 +65,7 @@ func Run() error {
 
 	app := http.NewApp(config)
 	http.RegisterRoutes(app, handlers)
-	app.Get("/debug/routes", func(c *fiber.Ctx) error {
-		type RouteDetail struct {
-			Method string   `json:"method"`
-			Path   string   `json:"path"`
-			Name   string   `json:"name"`
-			Params []string `json:"params"`
-		}
 
-		var routes []RouteDetail
-		for _, route := range app.GetRoutes() {
-			routes = append(routes, RouteDetail{
-				Method: route.Method,
-				Path:   route.Path,
-				Name:   route.Name,
-				Params: route.Params,
-			})
-		}
-
-		return c.JSON(fiber.Map{
-			"count":  len(routes),
-			"routes": routes,
-		})
-	})
 	return runServer(config, app, storage)
 }
 
