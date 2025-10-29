@@ -249,6 +249,16 @@ func (s *BoardService) DeleteColumn(ctx context.Context, req *BoardColumnRequest
 
 func (s *BoardService) MoveToColumn(ctx context.Context, req *BoardColumnMoveRequest) error {
 	const op = "board.service.MoveToColumn"
+	exists, err := s.repo.ExistsColumn(ctx, &BoardColumn{
+		BoardID: req.BoardID,
+		ID:      req.ColumnID,
+	})
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if !exists {
+		return fmt.Errorf("%s: %w", op, ErrColumnNotFound)
+	}
 	if req.FromPosition == req.ToPosition {
 		return nil
 	}
