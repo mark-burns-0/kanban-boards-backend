@@ -30,6 +30,7 @@ type BoardDeleter interface {
 type BoardGetter interface {
 	Get(ctx context.Context, uuid string) (*Board, error)
 	GetList(ctx context.Context, filter *BoardGetFilter) (*BoardListResult, error)
+	GetColumnByID(ctx context.Context, column *BoardColumn) (*BoardColumn, error)
 	GetColumnList(ctx context.Context, uuid string) ([]*BoardColumn, error)
 	GetMaxPositionValue(ctx context.Context, uuid string) (uint64, error)
 	Exists(ctx context.Context, uuid string) (bool, error)
@@ -237,12 +238,9 @@ func (s *BoardService) DeleteColumn(ctx context.Context, req *BoardColumnRequest
 		ID:      req.ID,
 		BoardID: req.BoardID,
 	}
-	exists, err := s.repo.ExistsColumn(ctx, column)
+	column, err := s.repo.GetColumnByID(ctx, column)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
-	}
-	if !exists {
-		return fmt.Errorf("%s: %w", op, ErrColumnNotFound)
 	}
 	if err := s.repo.DeleteColumn(ctx, column); err != nil {
 		return fmt.Errorf("%s: %w", op, err)

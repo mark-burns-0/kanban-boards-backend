@@ -201,6 +201,29 @@ func (r *BoardRepository) Exists(ctx context.Context, uuid string) (bool, error)
 	return exists, nil
 }
 
+func (r *BoardRepository) GetColumnByID(ctx context.Context, column *BoardColumn) (*BoardColumn, error) {
+	const op = "board.repository.GetColumnByID"
+	query := `
+		SELECT id, board_id, position, name, color, created_at
+		FROM board_columns bc WHERE id = $1 AND deleted_at IS NULL
+		ORDER BY id
+	`
+	data := &BoardColumn{}
+	row := r.storage.QueryRowContext(ctx, query, column.ID)
+	err := row.Scan(
+		&data.ID,
+		&data.BoardID,
+		&data.Position,
+		&data.Name,
+		&data.Color,
+		&data.CreatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return data, nil
+}
+
 func (r *BoardRepository) GetColumnList(ctx context.Context, uuid string) ([]*BoardColumn, error) {
 	const op = "board.repository.GetColumnList"
 	columnsRaw := []*BoardColumn{}
