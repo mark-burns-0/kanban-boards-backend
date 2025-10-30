@@ -19,7 +19,7 @@ type BoardCreator interface {
 type BoardUpdater interface {
 	Update(ctx context.Context, board *Board) error
 	UpdateColumn(ctx context.Context, column *BoardColumn) error
-	MoveToColumn(ctx context.Context, id string, columnID, fromPosition, toPosition uint64) error
+	MoveColumn(ctx context.Context, id string, columnID, fromPosition, toPosition uint64) error
 }
 
 type BoardDeleter interface {
@@ -250,8 +250,8 @@ func (s *BoardService) DeleteColumn(ctx context.Context, req *BoardColumnRequest
 	return nil
 }
 
-func (s *BoardService) MoveToColumn(ctx context.Context, req *BoardColumnMoveRequest) error {
-	const op = "board.service.MoveToColumn"
+func (s *BoardService) MoveColumn(ctx context.Context, req *BoardColumnMoveRequest) error {
+	const op = "board.service.MoveColumn"
 	exists, err := s.repo.ExistsColumn(ctx, &BoardColumn{
 		BoardID: req.BoardID,
 		ID:      req.ColumnID,
@@ -272,7 +272,7 @@ func (s *BoardService) MoveToColumn(ctx context.Context, req *BoardColumnMoveReq
 	if req.FromPosition > maxValue || req.ToPosition > maxValue+1 {
 		return fmt.Errorf("%s: %w", op, ErrInvalidPosition)
 	}
-	if err := s.repo.MoveToColumn(
+	if err := s.repo.MoveColumn(
 		ctx,
 		req.BoardID,
 		req.ColumnID,

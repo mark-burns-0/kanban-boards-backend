@@ -42,7 +42,7 @@ func (r *CommentRepository) Create(ctx context.Context, comment *Comment) error 
 	query := `INSERT INTO comments (card_id, user_id, text) VALUES($1, $2,$3)`
 	return utils.OpExec(
 		ctx,
-		r.storage,
+		r.storage.ExecContext,
 		op,
 		query,
 		ErrCommentAlreadyExists,
@@ -56,7 +56,7 @@ func (r *CommentRepository) Update(ctx context.Context, comment *Comment) error 
 	query := "UPDATE comments SET text = $1, updated_at = NOW() WHERE id = $2 AND card_id = $3 AND user_id = $4"
 	return utils.OpExec(
 		ctx,
-		r.storage,
+		r.storage.ExecContext,
 		op,
 		query,
 		ErrCardNotFound,

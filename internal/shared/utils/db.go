@@ -11,9 +11,9 @@ type Storage interface {
 }
 
 func OpExec(
-	ctx context.Context, storage Storage, op string, query string, mainErr error, params ...any,
+	ctx context.Context, exec func(ctx context.Context, query string, args ...any) (sql.Result, error), op string, query string, mainErr error, params ...any,
 ) error {
-	result, err := storage.ExecContext(
+	result, err := exec(
 		ctx,
 		query,
 		params...,

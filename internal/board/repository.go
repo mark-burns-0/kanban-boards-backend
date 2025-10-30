@@ -151,7 +151,7 @@ func (r *BoardRepository) Create(ctx context.Context, board *Board) error {
 	query := "INSERT INTO boards (name, description, user_id) VALUES ($1, $2, $3)"
 	return utils.OpExec(
 		ctx,
-		r.storage,
+		r.storage.ExecContext,
 		op,
 		query,
 		ErrBoardAlreadyExists,
@@ -166,7 +166,7 @@ func (r *BoardRepository) Update(ctx context.Context, board *Board) error {
 	query := "UPDATE boards SET name = $1, description = $2, updated_at = NOW() WHERE id = $3 AND deleted_at IS NULL"
 	return utils.OpExec(
 		ctx,
-		r.storage,
+		r.storage.ExecContext,
 		op,
 		query,
 		ErrBoardNotFound,
@@ -240,7 +240,7 @@ func (r *BoardRepository) CreateColumn(ctx context.Context, column *BoardColumn)
 	`
 	return utils.OpExec(
 		ctx,
-		r.storage,
+		r.storage.ExecContext,
 		op,
 		query,
 		ErrBoardNotFound,
@@ -263,7 +263,7 @@ func (r *BoardRepository) UpdateColumn(ctx context.Context, column *BoardColumn)
 	`
 	return utils.OpExec(
 		ctx,
-		r.storage,
+		r.storage.ExecContext,
 		op,
 		query,
 		ErrColumnNotFound,
@@ -324,8 +324,8 @@ func (r *BoardRepository) GetMaxPositionValue(ctx context.Context, uuid string) 
 	return uint64(maxPosition.Int64), nil
 }
 
-func (r *BoardRepository) MoveToColumn(ctx context.Context, id string, columnID, fromPosition, toPosition uint64) error {
-	const op = "board.repository.MoveToColumn"
+func (r *BoardRepository) MoveColumn(ctx context.Context, id string, columnID, fromPosition, toPosition uint64) error {
+	const op = "board.repository.MoveColumn"
 	tx, err := r.storage.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -333,39 +333,19 @@ func (r *BoardRepository) MoveToColumn(ctx context.Context, id string, columnID,
 	defer tx.Rollback()
 	moveQueryToPosition := `UPDATE board_columns SET position = $1 WHERE position = $2 AND board_id = $3 AND deleted_at IS null`
 	fromPositionInt := int64(fromPosition)
-	res, err := tx.ExecContext(ctx, moveQueryToPosition, -fromPositionInt, fromPosition, id)
+
+	err = utils.OpExec(ctx, tx.ExecContext, op, moveQueryToPosition, sql.ErrNoRows, -fromPositionInt, fromPosition, id)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	rowsAffected, err := res.RowsAffected()
+	err = utils.OpExec(ctx, tx.ExecContext, op, chooseMoveDirectionQuery(fromPosition, toPosition), sql.ErrNoRows, fromPosition, toPosition, id)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
-	}
-	if rowsAffected == 0 {
-		return fmt.Errorf("%s: %w", op, sql.ErrNoRows)
 	}
 
-	res, err = tx.ExecContext(ctx, chooseMoveDirectionQuery(fromPosition, toPosition), fromPosition, toPosition, id)
+	err = utils.OpExec(ctx, tx.ExecContext, op, moveQueryToPosition, sql.ErrNoRows, toPosition, -fromPositionInt, id)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
-	}
-	rowsAffected, err = res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if rowsAffected == 0 {
-		return fmt.Errorf("%s: %w", op, sql.ErrNoRows)
-	}
-	res, err = tx.ExecContext(ctx, moveQueryToPosition, toPosition, -fromPositionInt, id)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	rowsAffected, err = res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if rowsAffected == 0 {
-		return fmt.Errorf("%s: %w", op, sql.ErrNoRows)
 	}
 
 	return tx.Commit()

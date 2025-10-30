@@ -15,7 +15,7 @@ type BoardHandler interface {
 	CreateColumn(*fiber.Ctx) error
 	UpdateColumn(*fiber.Ctx) error
 	DeleteColumn(*fiber.Ctx) error
-	MoveToColumn(*fiber.Ctx) error
+	MoveColumn(*fiber.Ctx) error
 }
 
 func BoardRoutes(router fiber.Router, handler BoardHandler) fiber.Router {
@@ -33,7 +33,7 @@ func BoardRoutes(router fiber.Router, handler BoardHandler) fiber.Router {
 
 	columns.Post("/", handler.CreateColumn)
 	columns.Put("/:column_id", handler.UpdateColumn)
-	columns.Put("/:column_id/move", handler.MoveToColumn)
+	columns.Put("/:column_id/move", handler.MoveColumn)
 	columns.Delete("/:column_id", handler.DeleteColumn)
 
 	return boards

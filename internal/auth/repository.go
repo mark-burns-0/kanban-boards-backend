@@ -48,7 +48,7 @@ func (r *AuthRepository) Create(ctx context.Context, user *User) error {
 	query := "INSERT INTO users (name, email, password, refresh_token) VALUES($1, $2, $3, $4)"
 	return utils.OpExec(
 		ctx,
-		r.storage,
+		r.storage.ExecContext,
 		op,
 		query,
 		ErrUserAlreadyExists,
@@ -74,7 +74,7 @@ func (r *AuthRepository) UpdateRefreshToken(ctx context.Context, userID uint64, 
 	query := "UPDATE users SET refresh_token = $1 WHERE id = $2 AND deleted_at IS NULL"
 	return utils.OpExec(
 		ctx,
-		r.storage,
+		r.storage.ExecContext,
 		op,
 		query,
 		ErrUserNotFound,

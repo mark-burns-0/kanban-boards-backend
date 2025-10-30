@@ -121,7 +121,7 @@ func (r *CardRepository) Create(ctx context.Context, card *Card) error {
 	`
 	return utils.OpExec(
 		ctx,
-		r.storage,
+		r.storage.ExecContext,
 		op,
 		query,
 		ErrCardAlreadyExists,
@@ -138,17 +138,15 @@ func (r *CardRepository) Update(ctx context.Context, card *Card) error {
 	const op = "card.repository.Update"
 	query := `
 		UPDATE cards
-		SET column_id = $1, position = $2, text = $3, description = $4, properties = $5, updated_at = NOW()
-		WHERE id = $6 AND board_id = $7 AND deleted_at IS NULL
+		SET text = $1, description = $2, properties = $3, updated_at = NOW()
+		WHERE id = $4 AND board_id = $5 AND deleted_at IS NULL
 	`
 	return utils.OpExec(
 		ctx,
-		r.storage,
+		r.storage.ExecContext,
 		op,
 		query,
 		ErrCardNotFound,
-		card.ColumnID,
-		card.Position,
 		card.Text,
 		card.Description,
 		card.cardProperties,
@@ -159,33 +157,51 @@ func (r *CardRepository) Update(ctx context.Context, card *Card) error {
 
 func (r *CardRepository) Delete(ctx context.Context, card *Card) error {
 	const op = "card.repository.Delete"
-	var exists bool
+	tx, err := r.storage.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	query := `UPDATE cards SET position = position - 1 WHERE column_id = $1 AND board_id = $2 AND position > $3 AND deleted_at IS NULL`
+	err = utils.OpExec(ctx, tx.ExecContext, op, query, ErrCardNotFound, card.ColumnID, card.BoardID, card.Position)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	query = `UPDATE cards SET deleted_at = NOW(), position = NULL WHERE id = $1 AND board_id = $2 AND deleted_at IS NULL`
+	err = utils.OpExec(ctx, tx.ExecContext, op, query, ErrCardNotFound, card.ID, card.BoardID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
 
+func (r *CardRepository) Exists(ctx context.Context, card *Card) (bool, error) {
+	const op = "card.repository.Exists"
 	row := r.storage.QueryRowContext(ctx,
 		"SELECT EXISTS (SELECT 1 FROM cards WHERE id = $1 AND board_id = $2)",
 		card.ID,
 		card.BoardID,
 	)
+	var exists bool
 	err := row.Scan(&exists)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return false, fmt.Errorf("%s: %w", op, err)
 	}
-	if !exists {
-		return fmt.Errorf("%s: %w", op, ErrCardNotFound)
-	}
-	query := `UPDATE cards SET deleted_at = NOW() WHERE id = $1 AND board_id = $2`
-	result, err := r.storage.ExecContext(ctx, query, card.ID, card.BoardID)
+	return exists, nil
+}
+
+func (r *CardRepository) GetMaxColumnPosition(ctx context.Context, boardUUID string, columnID uint64) (uint64, error) {
+	const op = "card.repository.GetMaxColumnPosition"
+	var maxValue sql.NullInt64
+	query := "SELECT MAX(position) FROM cards WHERE board_id = $1 AND column_id = $2 AND deleted_at IS NULL"
+	row := r.storage.QueryRowContext(ctx, query, boardUUID, columnID)
+	err := row.Scan(&maxValue)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return 0, fmt.Errorf("%s: %w", op, err)
 	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+	if !maxValue.Valid {
+		return 0, nil
 	}
-	if rowsAffected != 1 {
-		return fmt.Errorf("%s: %w", op, ErrCardNotFound)
-	}
-	return nil
+	return uint64(maxValue.Int64), nil
 }
 
 func (r *CardRepository) MoveToNewPosition(
@@ -201,7 +217,7 @@ func (r *CardRepository) MoveToNewPosition(
 	`
 	err := utils.OpExec(
 		ctx,
-		r.storage,
+		r.storage.ExecContext,
 		op,
 		query,
 		ErrCardNotFound,

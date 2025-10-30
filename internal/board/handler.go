@@ -212,7 +212,7 @@ func (h *BoardHandler) DeleteColumn(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{})
 }
 
-func (h *BoardHandler) MoveToColumn(c *fiber.Ctx) error {
+func (h *BoardHandler) MoveColumn(c *fiber.Ctx) error {
 	body, err := utils.ParseBody[BoardColumnMoveRequest](c)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -234,7 +234,7 @@ func (h *BoardHandler) MoveToColumn(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-	if err := h.boardService.MoveToColumn(c.Context(), body); err != nil {
+	if err := h.boardService.MoveColumn(c.Context(), body); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.Status(fiber.StatusOK).JSON(
