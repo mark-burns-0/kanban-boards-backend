@@ -228,7 +228,6 @@ func (h *BoardHandler) MoveToColumn(c *fiber.Ctx) error {
 	}
 	body.BoardID = uuid
 	body.ColumnID = columnIDUint64
-
 	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
 		if err != nil {
 			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})

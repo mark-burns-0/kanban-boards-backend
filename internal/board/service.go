@@ -262,9 +262,6 @@ func (s *BoardService) MoveToColumn(ctx context.Context, req *BoardColumnMoveReq
 	if req.FromPosition == req.ToPosition {
 		return nil
 	}
-	if req.FromPosition <= 0 || req.ToPosition <= 0 {
-		return fmt.Errorf("%s: %w", op, ErrInvalidPosition)
-	}
 	maxValue, err := s.repo.GetMaxPositionValue(ctx, req.BoardID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
