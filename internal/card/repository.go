@@ -113,6 +113,28 @@ func (r *CardRepository) GetListWithComments(ctx context.Context, boardID string
 	return cardWithComments, nil
 }
 
+func (r *CardRepository) GetById(ctx context.Context, card *Card) (*Card, error) {
+	const op = "card.repository.GetById"
+	data := &Card{}
+	query := "SELECT id, column_id, board_id, text, description, position FROM cards WHERE id = $1 AND deleted_at IS NULL"
+	row := r.storage.QueryRowContext(ctx, query, card.ID)
+	err := row.Scan(
+		&data.ID,
+		&data.ColumnID,
+		&data.BoardID,
+		&data.Text,
+		&data.Description,
+		&data.Position,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%s: %w", op, ErrCardNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return data, nil
+}
+
 func (r *CardRepository) Create(ctx context.Context, card *Card) error {
 	const op = "card.repository.Create"
 	query := `
@@ -164,8 +186,8 @@ func (r *CardRepository) Delete(ctx context.Context, card *Card) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	defer tx.Rollback()
-	query := `UPDATE cards SET position = position - 1 WHERE column_id = $1 AND board_id = $2 AND position > $3 AND deleted_at IS NULL`
-	err = utils.OpExec(ctx, tx.ExecContext, op, query, ErrCardNotFound, card.ColumnID, card.BoardID, card.Position)
+	query := `UPDATE cards SET position = position - 1 WHERE column_id = $1 AND  board_id = $2 AND position > $3 AND deleted_at IS NULL`
+	_, err = tx.ExecContext(ctx, query, card.ColumnID, card.BoardID, card.Position)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

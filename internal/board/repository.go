@@ -276,16 +276,26 @@ func (r *BoardRepository) UpdateColumn(ctx context.Context, column *BoardColumn)
 
 func (r *BoardRepository) DeleteColumn(ctx context.Context, column *BoardColumn) error {
 	const op = "board.repository.DeleteColumn"
-	query := `
-		UPDATE board_columns SET
-			deleted_at = NOW()
-		WHERE board_id = $1 AND id = $2 AND deleted_at IS NULL
-	`
-	_, err := r.storage.ExecContext(ctx, query, column.BoardID, column.ID)
+	tx, err := r.storage.BeginTx(ctx, &sql.TxOptions{
+		Isolation: sql.LevelRepeatableRead,
+	})
+	defer tx.Rollback()
+	query := "UPDATE board_columns SET position = position - 1 WHERE board_id = $1  AND position > $2 AND deleted_at IS NULL"
+	_, err = tx.ExecContext(ctx, query, column.BoardID, column.Position)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	return nil
+	query = `
+		UPDATE board_columns SET
+			position = NULL,
+			deleted_at = NOW()
+		WHERE board_id = $1 AND id = $2 AND deleted_at IS NULL
+	`
+	err = utils.OpExec(ctx, tx.ExecContext, op, query, ErrColumnNotFound, column.BoardID, column.ID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return tx.Commit()
 }
 
 func (r *BoardRepository) ExistsColumn(ctx context.Context, column *BoardColumn) (bool, error) {

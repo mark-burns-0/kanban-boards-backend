@@ -11,6 +11,7 @@ import (
 type CardGetter interface {
 	GetListWithComments(ctx context.Context, boardID string) ([]*CardWithComments, error)
 	GetMaxColumnPosition(ctx context.Context, boardUUID string, columnID uint64) (uint64, error)
+	GetById(ctx context.Context, card *Card) (*Card, error)
 }
 
 type CardCreator interface {
@@ -109,17 +110,17 @@ func (s *CardService) Create(ctx context.Context, req *CardRequest) error {
 	return nil
 }
 
-func (s *CardService) Update(ctx context.Context, request *CardRequest) error {
+func (s *CardService) Update(ctx context.Context, req *CardRequest) error {
 	const op = "card.service.Update"
 	card := &Card{
-		ID:          request.ID,
-		ColumnID:    request.ColumnID,
-		BoardID:     request.BoardID,
-		Text:        request.Text,
-		Description: request.Description,
+		ID:          req.ID,
+		ColumnID:    req.ColumnID,
+		BoardID:     req.BoardID,
+		Text:        req.Text,
+		Description: req.Description,
 		cardProperties: cardProperties{
-			Color: request.Color,
-			Tag:   request.Tag,
+			Color: req.Color,
+			Tag:   req.Tag,
 		},
 	}
 	exists, err := s.repo.Exists(ctx, card)
@@ -135,11 +136,11 @@ func (s *CardService) Update(ctx context.Context, request *CardRequest) error {
 	return nil
 }
 
-func (s *CardService) Delete(ctx context.Context, request *CardRequest) error {
+func (s *CardService) Delete(ctx context.Context, req *CardRequest) error {
 	const op = "card.service.Delete"
 	card := &Card{
-		ID:      request.ID,
-		BoardID: request.BoardID,
+		ID:      req.ID,
+		BoardID: req.BoardID,
 	}
 	exists, err := s.repo.Exists(ctx, card)
 	if err != nil {
@@ -148,17 +149,21 @@ func (s *CardService) Delete(ctx context.Context, request *CardRequest) error {
 	if !exists {
 		return fmt.Errorf("%s: %w", op, ErrCardNotFound)
 	}
+	card, err = s.repo.GetById(ctx, card)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
 	if err := s.repo.Delete(ctx, card); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
 }
 
-func (s *CardService) MoveToNewPosition(ctx context.Context, request *CardMoveRequest) error {
+func (s *CardService) MoveToNewPosition(ctx context.Context, req *CardMoveRequest) error {
 	const op = "card.service.MoveToNewPosition"
 	card := &Card{
-		ID:      request.ID,
-		BoardID: request.BoardID,
+		ID:      req.ID,
+		BoardID: req.BoardID,
 	}
 	exists, err := s.repo.Exists(ctx, card)
 	if err != nil {
@@ -169,12 +174,12 @@ func (s *CardService) MoveToNewPosition(ctx context.Context, request *CardMoveRe
 	}
 	if err := s.repo.MoveToNewPosition(
 		ctx,
-		request.BoardID,
-		request.ID,
-		request.FromColumnID,
-		request.ToColumnID,
-		request.FromPosition,
-		request.ToPosition,
+		req.BoardID,
+		req.ID,
+		req.FromColumnID,
+		req.ToColumnID,
+		req.FromPosition,
+		req.ToPosition,
 	); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
