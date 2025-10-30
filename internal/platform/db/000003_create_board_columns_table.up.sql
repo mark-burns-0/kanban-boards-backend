@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS board_columns (
     board_id UUID NOT NULL REFERENCES boards(id) ON DELETE RESTRICT,
     name TEXT NOT NULL,
     color VARCHAR(20),
-    position INTEGER DEFAULT 0,
+    position INTEGER DEFAULT 1,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     deleted_at TIMESTAMPTZ DEFAULT NULL

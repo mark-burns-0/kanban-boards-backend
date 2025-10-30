@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS cards (
     column_id INTEGER NOT NULL REFERENCES board_columns(id) ON DELETE RESTRICT,
     text TEXT NOT NULL,
     description TEXT,
-    position INTEGER DEFAULT 0,
+    position INTEGER DEFAULT 1,
     properties JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
