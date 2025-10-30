@@ -189,7 +189,7 @@ func (r *CardRepository) Delete(ctx context.Context, card *Card) error {
 }
 
 func (r *CardRepository) MoveToNewPosition(
-	ctx context.Context, boardID string, cardID, fromColumnID, toColumnID, cardPosition uint64,
+	ctx context.Context, boardID string, cardID, fromColumnID, toColumnID, cardFromPosition, cardToPosition uint64,
 ) error {
 	const op = "card.repository.MoveToNewPosition"
 	if fromColumnID == toColumnID {
@@ -206,7 +206,7 @@ func (r *CardRepository) MoveToNewPosition(
 		query,
 		ErrCardNotFound,
 		toColumnID,
-		cardPosition,
+		cardFromPosition,
 		cardID,
 		boardID,
 	)
