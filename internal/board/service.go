@@ -201,11 +201,15 @@ func (s *BoardService) Delete(ctx context.Context, boardUUID string) error {
 
 func (s *BoardService) CreateColumn(ctx context.Context, req *BoardColumnRequest) error {
 	const op = "board.service.CreateColumn"
+	maxVal, err := s.repo.GetMaxPositionValue(ctx, req.BoardID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
 	column := &BoardColumn{
 		BoardID:  req.BoardID,
 		Name:     req.Name,
-		Position: req.Position,
 		Color:    req.Color,
+		Position: maxVal + 1,
 	}
 	if err := s.repo.CreateColumn(ctx, column); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -216,11 +220,10 @@ func (s *BoardService) CreateColumn(ctx context.Context, req *BoardColumnRequest
 func (s *BoardService) UpdateColumn(ctx context.Context, req *BoardColumnRequest) error {
 	const op = "board.service.UpdateColumn"
 	column := &BoardColumn{
-		ID:       req.ID,
-		BoardID:  req.BoardID,
-		Name:     req.Name,
-		Position: req.Position,
-		Color:    req.Color,
+		ID:      req.ID,
+		BoardID: req.BoardID,
+		Name:    req.Name,
+		Color:   req.Color,
 	}
 	if err := s.repo.UpdateColumn(ctx, column); err != nil {
 		return fmt.Errorf("%s: %w", op, err)

@@ -6,9 +6,9 @@ import (
 
 type Board struct {
 	ID          string
-	UserID      uint64
 	Name        string
 	Description string
+	UserID      uint64
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	DeletedAt   *time.Time
@@ -64,11 +64,10 @@ type BoardListResult struct {
 }
 
 type BoardColumnRequest struct {
-	ID       uint64
-	BoardID  string `json:"board_id" validate:"required,uuid"`
-	Name     string `json:"name" validate:"required,min=2"`
-	Color    string `json:"color" validate:"required,hexcolor"`
-	Position uint64 `json:"position" validate:"required,min=1"`
+	ID      uint64
+	BoardID string `json:"board_id" validate:"required,uuid"`
+	Name    string `json:"name" validate:"required,min=2"`
+	Color   string `json:"color" validate:"required,hexcolor"`
 }
 
 type BoardColumnResponse struct {

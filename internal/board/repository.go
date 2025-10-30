@@ -332,7 +332,8 @@ func (r *BoardRepository) MoveToColumn(ctx context.Context, id string, columnID,
 	}
 	defer tx.Rollback()
 	moveQueryToPosition := `UPDATE board_columns SET position = $1 WHERE position = $2 AND board_id = $3 AND deleted_at IS null`
-	res, err := tx.ExecContext(ctx, moveQueryToPosition, -fromPosition, fromPosition, id)
+	fromPositionInt := int64(fromPosition)
+	res, err := tx.ExecContext(ctx, moveQueryToPosition, -fromPositionInt, fromPosition, id)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -355,8 +356,7 @@ func (r *BoardRepository) MoveToColumn(ctx context.Context, id string, columnID,
 	if rowsAffected == 0 {
 		return fmt.Errorf("%s: %w", op, sql.ErrNoRows)
 	}
-
-	res, err = tx.ExecContext(ctx, moveQueryToPosition, toPosition, -fromPosition, id)
+	res, err = tx.ExecContext(ctx, moveQueryToPosition, toPosition, -fromPositionInt, id)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
