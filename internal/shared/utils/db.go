@@ -25,7 +25,7 @@ func OpExec(
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	if rowsAffected != 1 {
+	if rowsAffected == 0 {
 		return fmt.Errorf("%s: %w", op, mainErr)
 	}
 	return nil

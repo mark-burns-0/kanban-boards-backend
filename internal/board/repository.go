@@ -326,7 +326,9 @@ func (r *BoardRepository) GetMaxPositionValue(ctx context.Context, uuid string) 
 
 func (r *BoardRepository) MoveColumn(ctx context.Context, id string, columnID, fromPosition, toPosition uint64) error {
 	const op = "board.repository.MoveColumn"
-	tx, err := r.storage.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := r.storage.BeginTx(ctx, &sql.TxOptions{
+		Isolation: sql.LevelRepeatableRead,
+	})
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -353,10 +355,11 @@ func (r *BoardRepository) MoveColumn(ctx context.Context, id string, columnID, f
 
 func chooseMoveDirectionQuery(from, to uint64) string {
 	var moveQuery string
-	if from < to { // move to right
-		moveQuery = `update board_columns set position = position - 1 where position > $1 AND position <= $2 and board_id = $3 and deleted_at is null`
-	} else { // move to left
-		moveQuery = `update board_columns set position = position + 1 where position < $1 and position >= $2 and board_id = $3 and deleted_at is null`
+
+	if from < to {
+		moveQuery = `update board_columns set position = position - 1 where position > $1 AND position <= $2 and board_id = $3 and deleted_at is null` // move to right
+	} else {
+		moveQuery = `update board_columns set position = position + 1 where position < $1 and position >= $2 and board_id = $3 and deleted_at is null` // move to left
 	}
 	return moveQuery
 }

@@ -157,10 +157,13 @@ func (r *CardRepository) Update(ctx context.Context, card *Card) error {
 
 func (r *CardRepository) Delete(ctx context.Context, card *Card) error {
 	const op = "card.repository.Delete"
-	tx, err := r.storage.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := r.storage.BeginTx(ctx, &sql.TxOptions{
+		Isolation: sql.LevelRepeatableRead,
+	})
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+	defer tx.Rollback()
 	query := `UPDATE cards SET position = position - 1 WHERE column_id = $1 AND board_id = $2 AND position > $3 AND deleted_at IS NULL`
 	err = utils.OpExec(ctx, tx.ExecContext, op, query, ErrCardNotFound, card.ColumnID, card.BoardID, card.Position)
 	if err != nil {
@@ -171,7 +174,7 @@ func (r *CardRepository) Delete(ctx context.Context, card *Card) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	return nil
+	return tx.Commit()
 }
 
 func (r *CardRepository) Exists(ctx context.Context, card *Card) (bool, error) {
