@@ -34,7 +34,7 @@ type BoardGetter interface {
 	GetColumnList(ctx context.Context, uuid string) ([]*BoardColumn, error)
 	GetMaxPositionValue(ctx context.Context, uuid string) (uint64, error)
 	Exists(ctx context.Context, uuid string) (bool, error)
-	ExistsColumn(ctx context.Context, column *BoardColumn) (bool, error)
+	ExistsColumn(ctx context.Context, uuid string, columnID uint64) (bool, error)
 }
 
 type BoardRepo interface {
@@ -250,10 +250,7 @@ func (s *BoardService) DeleteColumn(ctx context.Context, req *BoardColumnRequest
 
 func (s *BoardService) MoveColumn(ctx context.Context, req *BoardColumnMoveRequest) error {
 	const op = "board.service.MoveColumn"
-	exists, err := s.repo.ExistsColumn(ctx, &BoardColumn{
-		BoardID: req.BoardID,
-		ID:      req.ColumnID,
-	})
+	exists, err := s.repo.ExistsColumn(ctx, req.BoardID, req.ColumnID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

@@ -321,14 +321,14 @@ func (r *BoardRepository) DeleteColumn(ctx context.Context, column *BoardColumn)
 	return tx.Commit()
 }
 
-func (r *BoardRepository) ExistsColumn(ctx context.Context, column *BoardColumn) (bool, error) {
+func (r *BoardRepository) ExistsColumn(ctx context.Context, uuid string, columnID uint64) (bool, error) {
 	const op = "board.repository.ExistsColumn"
 	var exists bool
 	row := r.storage.QueryRowContext(
 		ctx,
 		"SELECT EXISTS(SELECT 1 FROM board_columns WHERE board_id = $1 AND id = $2)",
-		column.BoardID,
-		column.ID,
+		uuid,
+		columnID,
 	)
 	err := row.Scan(&exists)
 	if err != nil {

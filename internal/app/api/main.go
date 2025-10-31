@@ -50,7 +50,7 @@ func Run() error {
 	//services
 	userService := user.NewUserService(userRepo, config)
 	authService := auth.NewAuthService(authRepo, config)
-	cardService := card.NewCardService(cardRepo)
+	cardService := card.NewCardService(cardRepo, boardRepo)
 	boardService := board.NewBoardService(boardRepo, cardService)
 	commentService := comment.NewCommentService(commentRepo)
 
