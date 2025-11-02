@@ -4,13 +4,7 @@ import (
 	"backend/internal/shared/utils"
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
-)
-
-var (
-	ErrCardNotFound         = errors.New("card not found")
-	ErrCommentAlreadyExists = errors.New("comment already exists")
 )
 
 type Storage interface {

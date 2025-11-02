@@ -9,12 +9,6 @@ import (
 	"time"
 )
 
-var (
-	ErrCardAlreadyExists = errors.New("card already exists")
-	ErrCardNotFound      = errors.New("card not found")
-	ErrColumnNotExist    = errors.New("column not exists")
-)
-
 type Storage interface {
 	Exec(query string, args ...any) (sql.Result, error)
 	Query(query string, args ...any) (*sql.Rows, error)
@@ -195,6 +189,9 @@ func (r *CardRepository) Delete(ctx context.Context, card *Card) error {
 	query = `UPDATE cards SET deleted_at = NOW(), position = NULL WHERE id = $1 AND board_id = $2 AND deleted_at IS NULL`
 	err = utils.OpExec(ctx, tx.ExecContext, op, query, ErrCardNotFound, card.ID, card.BoardID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("%s: %w", op, ErrCardNotFound)
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return tx.Commit()
@@ -245,12 +242,11 @@ func (r *CardRepository) MoveToNewPosition(
 		UPDATE cards SET position = $1 WHERE id = $2 AND board_id = $3 AND column_id = $4 AND deleted_at IS NULL
 	`
 	formPositionInt := -int64(fromCardPosition)
-	res, err := tx.ExecContext(ctx, moveToTempPosition, formPositionInt, cardID, uuid, fromColumnID)
+	_, err = tx.ExecContext(ctx, moveToTempPosition, formPositionInt, cardID, uuid, fromColumnID)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	_, err = res.RowsAffected()
-	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("%s: %w", op, ErrCardNotFound)
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if fromColumnID == toColumnID {
@@ -262,11 +258,7 @@ func (r *CardRepository) MoveToNewPosition(
 			// to left
 			shiftPositionQuery = "UPDATE cards SET position = position + 1 WHERE position < $1 AND position > $2 AND column_id = $3 AND deleted_at IS NULL"
 		}
-		res, err := tx.ExecContext(ctx, shiftPositionQuery, fromCardPosition, toCardPosition, fromColumnID)
-		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
-		_, err = res.RowsAffected()
+		_, err := tx.ExecContext(ctx, shiftPositionQuery, fromCardPosition, toCardPosition, fromColumnID)
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
@@ -277,40 +269,30 @@ func (r *CardRepository) MoveToNewPosition(
 		shiftColumnFromPositionQuery = `
 			UPDATE cards SET position = position - 1 WHERE position > $1 AND board_id = $2 AND column_id = $3 AND deleted_at IS NULL
 		`
-		res, err = tx.ExecContext(ctx, shiftColumnFromPositionQuery, fromCardPosition, uuid, fromColumnID)
+		_, err = tx.ExecContext(ctx, shiftColumnFromPositionQuery, fromCardPosition, uuid, fromColumnID)
 		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
-		if _, err = res.RowsAffected(); err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		shiftColumnToPositionQuery = `
 			UPDATE cards SET position = position + 1 WHERE position >= $1 AND board_id = $2 AND column_id = $3 AND deleted_at IS NULL
 		`
-		res, err = tx.ExecContext(ctx, shiftColumnToPositionQuery, toCardPosition, uuid, toColumnID)
+		_, err = tx.ExecContext(ctx, shiftColumnToPositionQuery, toCardPosition, uuid, toColumnID)
 		if err != nil {
-			return fmt.Errorf("%s: %w", op, err)
-		}
-		if _, err = res.RowsAffected(); err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
 	}
 
 	moveFromTempTo := `
-		UPDATE cards SET position = $1, column_id = $2, updated_at = NOW() 
+		UPDATE cards SET position = $1, column_id = $2, updated_at = NOW()
 		WHERE id = $3 AND board_id = $4 AND deleted_at IS NULL
 	`
-	res, err = tx.ExecContext(ctx, moveFromTempTo, toCardPosition, toColumnID, cardID, uuid)
+	_, err = tx.ExecContext(ctx, moveFromTempTo, toCardPosition, toColumnID, cardID, uuid)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("%s: %w", op, ErrCardNotFound)
+		}
 		return fmt.Errorf("%s: %w", op, err)
-	}
-	rowsAffected, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	if rowsAffected < 1 {
-		return fmt.Errorf("%s: %w", op, sql.ErrNoRows)
 	}
 	return tx.Commit()
 }
