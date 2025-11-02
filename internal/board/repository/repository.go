@@ -1,6 +1,7 @@
 package board
 
 import (
+	"backend/internal/board/domain"
 	"backend/internal/shared/utils"
 	"context"
 	"database/sql"
@@ -30,10 +31,10 @@ func NewBoardRepository(storage Storage) *BoardRepository {
 	}
 }
 
-func (r *BoardRepository) Get(ctx context.Context, uuid string) (*Board, error) {
+func (r *BoardRepository) Get(ctx context.Context, uuid string) (*domain.Board, error) {
 	const op = "board.repository.Get"
 	query := "SELECT id, name, description, created_at, updated_at FROM boards WHERE id = $1"
-	board := &Board{}
+	board := &domain.Board{}
 	row := r.storage.QueryRowContext(ctx, query, uuid)
 	err := row.Scan(
 		&board.ID,
@@ -50,10 +51,10 @@ func (r *BoardRepository) Get(ctx context.Context, uuid string) (*Board, error) 
 
 func (r *BoardRepository) GetList(
 	ctx context.Context,
-	filter *BoardGetFilter,
-) (*BoardListResult, error) {
+	filter *domain.BoardGetFilter,
+) (*domain.BoardListResult, error) {
 	const op = "board.repository.GetList"
-	boards := []*Board{}
+	boards := []*domain.Board{}
 	limit := filter.PerPage
 	offset := (filter.Page - 1) * filter.PerPage
 	query, params := buildQuery(filter)
@@ -68,7 +69,7 @@ func (r *BoardRepository) GetList(
 	}
 	defer rows.Close()
 	for rows.Next() {
-		board := &Board{}
+		board := &domain.Board{}
 		if err := rows.Scan(
 			&board.ID,
 			&board.Name,
@@ -93,14 +94,14 @@ func (r *BoardRepository) GetList(
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	result := &BoardListResult{
+	result := &domain.BoardListResult{
 		Data:       boards,
 		TotalCount: count,
 	}
 	return result, nil
 }
 
-func buildQuery(filter *BoardGetFilter) (string, []any) {
+func buildQuery(filter *domain.BoardGetFilter) (string, []any) {
 	var where []string
 	params := []any{filter.UserID}
 	baseQuery := `
@@ -119,7 +120,7 @@ func buildQuery(filter *BoardGetFilter) (string, []any) {
 func addFilterToQuery(
 	where []string,
 	params []any,
-	filter *Filters,
+	filter *domain.Filters,
 ) ([]string, []any, int) {
 	paramIndex := 2
 	if filter != nil {
@@ -137,7 +138,7 @@ func addFilterToQuery(
 	return where, params, paramIndex
 }
 
-func (r *BoardRepository) Create(ctx context.Context, board *Board) error {
+func (r *BoardRepository) Create(ctx context.Context, board *domain.Board) error {
 	const op = "board.repository.Create"
 	query := "INSERT INTO boards (name, description, user_id) VALUES ($1, $2, $3)"
 	return utils.OpExec(
@@ -145,14 +146,14 @@ func (r *BoardRepository) Create(ctx context.Context, board *Board) error {
 		r.storage.ExecContext,
 		op,
 		query,
-		ErrBoardAlreadyExists,
+		domain.ErrBoardAlreadyExists,
 		board.Name,
 		board.Description,
 		board.UserID,
 	)
 }
 
-func (r *BoardRepository) Update(ctx context.Context, board *Board) error {
+func (r *BoardRepository) Update(ctx context.Context, board *domain.Board) error {
 	const op = "board.repository.Update"
 	query := "UPDATE boards SET name = $1, description = $2, updated_at = NOW() WHERE id = $3 AND deleted_at IS NULL"
 	return utils.OpExec(
@@ -160,7 +161,7 @@ func (r *BoardRepository) Update(ctx context.Context, board *Board) error {
 		r.storage.ExecContext,
 		op,
 		query,
-		ErrBoardNotFound,
+		domain.ErrBoardNotFound,
 		board.Name,
 		board.Description,
 		board.ID,
@@ -192,14 +193,14 @@ func (r *BoardRepository) Exists(ctx context.Context, uuid string) (bool, error)
 	return exists, nil
 }
 
-func (r *BoardRepository) GetColumnByID(ctx context.Context, column *BoardColumn) (*BoardColumn, error) {
+func (r *BoardRepository) GetColumnByID(ctx context.Context, column *domain.BoardColumn) (*domain.BoardColumn, error) {
 	const op = "board.repository.GetColumnByID"
 	query := `
 		SELECT id, board_id, position, name, color, created_at
 		FROM board_columns bc WHERE id = $1 AND deleted_at IS NULL
 		ORDER BY id
 	`
-	data := &BoardColumn{}
+	data := &domain.BoardColumn{}
 	row := r.storage.QueryRowContext(ctx, query, column.ID)
 	err := row.Scan(
 		&data.ID,
@@ -215,9 +216,9 @@ func (r *BoardRepository) GetColumnByID(ctx context.Context, column *BoardColumn
 	return data, nil
 }
 
-func (r *BoardRepository) GetColumnList(ctx context.Context, uuid string) ([]*BoardColumn, error) {
+func (r *BoardRepository) GetColumnList(ctx context.Context, uuid string) ([]*domain.BoardColumn, error) {
 	const op = "board.repository.GetColumnList"
-	columnsRaw := []*BoardColumn{}
+	columnsRaw := []*domain.BoardColumn{}
 	query := `
 		SELECT id, board_id, position, name, color, created_at
 		FROM board_columns bc WHERE board_id = $1 AND deleted_at IS NULL
@@ -229,7 +230,7 @@ func (r *BoardRepository) GetColumnList(ctx context.Context, uuid string) ([]*Bo
 	}
 	defer rows.Close()
 	for rows.Next() {
-		column := &BoardColumn{}
+		column := &domain.BoardColumn{}
 		err := rows.Scan(
 			&column.ID,
 			&column.BoardID,
@@ -246,7 +247,7 @@ func (r *BoardRepository) GetColumnList(ctx context.Context, uuid string) ([]*Bo
 	return columnsRaw, nil
 }
 
-func (r *BoardRepository) CreateColumn(ctx context.Context, column *BoardColumn) error {
+func (r *BoardRepository) CreateColumn(ctx context.Context, column *domain.BoardColumn) error {
 	const op = "board.repository.CreateColumn"
 	query := `
 		INSERT INTO board_columns (board_id, name, color, position)
@@ -257,7 +258,7 @@ func (r *BoardRepository) CreateColumn(ctx context.Context, column *BoardColumn)
 		r.storage.ExecContext,
 		op,
 		query,
-		ErrBoardNotFound,
+		domain.ErrBoardNotFound,
 		column.BoardID,
 		column.Name,
 		column.Color,
@@ -265,7 +266,7 @@ func (r *BoardRepository) CreateColumn(ctx context.Context, column *BoardColumn)
 	)
 }
 
-func (r *BoardRepository) UpdateColumn(ctx context.Context, column *BoardColumn) error {
+func (r *BoardRepository) UpdateColumn(ctx context.Context, column *domain.BoardColumn) error {
 	const op = "board.repository.UpdateColumn"
 	query := `
 		UPDATE board_columns
@@ -280,7 +281,7 @@ func (r *BoardRepository) UpdateColumn(ctx context.Context, column *BoardColumn)
 		r.storage.ExecContext,
 		op,
 		query,
-		ErrColumnNotFound,
+		domain.ErrColumnNotFound,
 		column.Name,
 		column.Color,
 		column.BoardID,
@@ -288,7 +289,7 @@ func (r *BoardRepository) UpdateColumn(ctx context.Context, column *BoardColumn)
 	)
 }
 
-func (r *BoardRepository) DeleteColumn(ctx context.Context, column *BoardColumn) error {
+func (r *BoardRepository) DeleteColumn(ctx context.Context, column *domain.BoardColumn) error {
 	const op = "board.repository.DeleteColumn"
 	tx, err := r.storage.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelRepeatableRead,
@@ -305,7 +306,7 @@ func (r *BoardRepository) DeleteColumn(ctx context.Context, column *BoardColumn)
 			deleted_at = NOW()
 		WHERE board_id = $1 AND id = $2 AND deleted_at IS NULL
 	`
-	err = utils.OpExec(ctx, tx.ExecContext, op, query, ErrColumnNotFound, column.BoardID, column.ID)
+	err = utils.OpExec(ctx, tx.ExecContext, op, query, domain.ErrColumnNotFound, column.BoardID, column.ID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -340,7 +341,7 @@ func (r *BoardRepository) GetMaxPositionValue(ctx context.Context, uuid string) 
 	)
 	err := row.Scan(&maxPosition)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, ErrInvalidMaxPositionValue)
+		return 0, fmt.Errorf("%s: %w", op, domain.ErrInvalidMaxPositionValue)
 	}
 	if !maxPosition.Valid {
 		return 0, nil

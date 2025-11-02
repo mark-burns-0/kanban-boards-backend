@@ -1,11 +1,10 @@
-package board
+package domain
 
 import (
 	"backend/internal/card/domain"
 	"cmp"
 	"context"
 	"fmt"
-	"math"
 	"slices"
 
 	"golang.org/x/sync/errgroup"
@@ -66,47 +65,16 @@ func NewBoardService(repo BoardRepo, cardService CardService) *BoardService {
 
 func (s *BoardService) GetList(
 	ctx context.Context, filter *BoardGetFilter,
-) (*BoardListResponse, error) {
+) (*BoardListResult, error) {
 	const op = "board.service.GetList"
-	rawResp, err := s.repo.GetList(ctx, filter)
+	boardList, err := s.repo.GetList(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	boards := make([]*BoardResponse, 0, len(rawResp.Data))
-	for _, board := range rawResp.Data {
-		boards = append(
-			boards,
-			&BoardResponse{
-				ID:          board.ID,
-				Name:        board.Name,
-				Description: board.Description,
-				CreatedAt:   board.CreatedAt,
-				UpdatedAt:   board.UpdatedAt,
-			},
-		)
-	}
-	totalPages := uint64(math.Ceil(float64(rawResp.TotalCount) / float64(filter.PerPage)))
-	hasPrev := filter.Page > 1
-	hasNext := filter.Page < totalPages
-	var nextPage *uint64
-	if hasNext {
-		page := filter.Page + 1
-		nextPage = &page
-	}
-	response := &BoardListResponse{
-		Data:        boards,
-		PerPage:     filter.PerPage,
-		CurrentPage: filter.Page,
-		NextPage:    nextPage,
-		TotalPages:  totalPages,
-		HasNext:     hasNext,
-		HasPrev:     hasPrev,
-		TotalCount:  rawResp.TotalCount,
-	}
-	return response, nil
+	return boardList, nil
 }
 
-func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*SingleBoardResponse[domain.CardWithComments], error) {
+func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*BoardWithDetails[domain.CardWithComments], error) {
 	const op = "board.service.GetByUUID"
 	var (
 		rawBoard   *Board
@@ -132,9 +100,9 @@ func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*Single
 	if err := eg.Wait(); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	var columns []*BoardColumnResponse
+	var columns []*BoardColumn
 	for _, rawColumn := range rawColumns {
-		column := &BoardColumnResponse{
+		column := &BoardColumn{
 			ID:        rawColumn.ID,
 			Name:      rawColumn.Name,
 			Color:     rawColumn.Color,
@@ -144,11 +112,11 @@ func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*Single
 		}
 		columns = append(columns, column)
 	}
-	slices.SortFunc(columns, func(a, b *BoardColumnResponse) int {
+	slices.SortFunc(columns, func(a, b *BoardColumn) int {
 		return cmp.Compare(a.ID, b.ID)
 	})
-	board := &SingleBoardResponse[domain.CardWithComments]{
-		BoardResponse: &BoardResponse{
+	board := &BoardWithDetails[domain.CardWithComments]{
+		Board: &Board{
 			ID:          rawBoard.ID,
 			Name:        rawBoard.Name,
 			Description: rawBoard.Description,
@@ -161,7 +129,7 @@ func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*Single
 	return board, nil
 }
 
-func (s *BoardService) Create(ctx context.Context, board *BoardRequest) error {
+func (s *BoardService) Create(ctx context.Context, board *Board) error {
 	const op = "board.service.Create"
 	data := &Board{
 		UserID:      board.UserID,
@@ -174,7 +142,7 @@ func (s *BoardService) Create(ctx context.Context, board *BoardRequest) error {
 	return nil
 }
 
-func (s *BoardService) Update(ctx context.Context, board *BoardRequest) error {
+func (s *BoardService) Update(ctx context.Context, board *Board) error {
 	const op = "board.service.Update"
 	data := &Board{
 		ID:          board.ID,
@@ -203,7 +171,7 @@ func (s *BoardService) Delete(ctx context.Context, boardUUID string) error {
 	return nil
 }
 
-func (s *BoardService) CreateColumn(ctx context.Context, req *BoardColumnRequest) error {
+func (s *BoardService) CreateColumn(ctx context.Context, req *BoardColumn) error {
 	const op = "board.service.CreateColumn"
 	maxVal, err := s.repo.GetMaxPositionValue(ctx, req.BoardID)
 	if err != nil {
@@ -221,7 +189,7 @@ func (s *BoardService) CreateColumn(ctx context.Context, req *BoardColumnRequest
 	return nil
 }
 
-func (s *BoardService) UpdateColumn(ctx context.Context, req *BoardColumnRequest) error {
+func (s *BoardService) UpdateColumn(ctx context.Context, req *BoardColumn) error {
 	const op = "board.service.UpdateColumn"
 	column := &BoardColumn{
 		ID:      req.ID,
@@ -235,7 +203,7 @@ func (s *BoardService) UpdateColumn(ctx context.Context, req *BoardColumnRequest
 	return nil
 }
 
-func (s *BoardService) DeleteColumn(ctx context.Context, req *BoardColumnRequest) error {
+func (s *BoardService) DeleteColumn(ctx context.Context, req *BoardColumn) error {
 	const op = "board.service.DeleteColumn"
 	column := &BoardColumn{
 		ID:      req.ID,
@@ -251,7 +219,7 @@ func (s *BoardService) DeleteColumn(ctx context.Context, req *BoardColumnRequest
 	return nil
 }
 
-func (s *BoardService) MoveColumn(ctx context.Context, req *BoardColumnMoveRequest) error {
+func (s *BoardService) MoveColumn(ctx context.Context, req *BoardMoveCommand) error {
 	const op = "board.service.MoveColumn"
 	exists, err := s.repo.ExistsColumn(ctx, req.BoardID, req.ColumnID)
 	if err != nil {
