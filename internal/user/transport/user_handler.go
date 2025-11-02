@@ -2,7 +2,9 @@ package transport
 
 import (
 	"backend/internal/shared/ports/http"
+	"backend/internal/shared/utils"
 	"context"
+	"log/slog"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -19,13 +21,13 @@ type UserService interface {
 
 type UserHandler struct {
 	validator   http.Validator
-	lang        LangMessage
+	lang        http.LangMessage
 	userService UserService
 }
 
 func NewUserHandler(
 	validator http.Validator,
-	lang LangMessage,
+	lang http.LangMessage,
 	userService UserService,
 ) *UserHandler {
 	return &UserHandler{
@@ -48,14 +50,18 @@ func (h *UserHandler) Current(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) Update(c *fiber.Ctx) error {
-	body := &UserRequest{}
-	if err := c.BodyParser(&body); err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(fiber.Map{"error": err.Error()})
+	const op = "user.transport.user_handler.Update"
+	body, err := utils.ParseBody[UserRequest](c)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
 		if err != nil {
-			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
+			slog.Error("validator error",
+				slog.String("op", op),
+				slog.Any("err", err),
+			)
+			return c.Status(statusCode).JSON(fiber.Map{"error": "Validation error"})
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
@@ -64,8 +70,12 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 	if err := h.userService.Update(c.Context(), body, userID); err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(fiber.Map{"error": err.Error()})
+		slog.Error(
+			"service error",
+			slog.String("operation", op),
+			slog.Any("error", err),
+		)
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "Server error"})
 	}
 	return c.Status(fiber.StatusCreated).JSON(
 		fiber.Map{

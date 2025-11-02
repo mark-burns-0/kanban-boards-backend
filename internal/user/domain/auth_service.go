@@ -47,37 +47,42 @@ func NewAuthService(authRepo AuthRepo, config Config) *AuthService {
 	}
 }
 
-func (r *AuthService) Register(ctx context.Context, userRequest *transport.UserCreateRequest) error {
+func (r *AuthService) Register(ctx context.Context, req *transport.UserRegisterRequest) error {
 	const op = "auth.service.Register"
-	user, _ := r.authRepo.GetByEmail(ctx, userRequest.Email)
+	user, _ := r.authRepo.GetByEmail(ctx, req.Email)
 	if user != nil {
-		return fmt.Errorf("user with email %s already exists", userRequest.Email)
+		return fmt.Errorf("%s: %w", op, UserAlreadyExists{
+			email: req.Email,
+		})
 	}
 	power, err := strconv.Atoi(r.config.GetBcryptPower())
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(userRequest.Password), power)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), power)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	newUser := User{
-		Name:     userRequest.Name,
-		Email:    userRequest.Email,
+		Name:     req.Name,
+		Email:    req.Email,
 		Password: string(hashedPassword),
 	}
 	return r.authRepo.Create(ctx, &newUser)
 }
 
-func (r *AuthService) Login(ctx context.Context, userRequest *transport.UserLoginRequest) (*transport.TokensResponse, error) {
+func (r *AuthService) Login(ctx context.Context, req *transport.UserLoginRequest) (*transport.TokensResponse, error) {
 	const op = "auth.service.Login"
-	user, _ := r.authRepo.GetByEmail(ctx, userRequest.Email)
+	user, _ := r.authRepo.GetByEmail(ctx, req.Email)
 	if user == nil {
-		return nil, fmt.Errorf("%s: user with email %s not found", op, userRequest.Email)
+		err := EmailNotFoundErr{
+			email: req.Email,
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userRequest.Password))
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
 	if err != nil {
-		return nil, fmt.Errorf("%s: invalid password", op)
+		return nil, fmt.Errorf("%s: %w", op, InvalidPasswordErr{})
 	}
 	accessToken, err := r.generateToken(user, AccessTokenType)
 	if err != nil {
@@ -104,7 +109,7 @@ func (r *AuthService) RefreshToken(ctx context.Context, token string) (*transpor
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	if user == nil {
-		return nil, fmt.Errorf("%s: user with refresh token %s not found", op, token)
+		return nil, fmt.Errorf("%s: %w", op, ErrUserNotFound)
 	}
 	accessToken, err := r.generateToken(user, AccessTokenType)
 	if err != nil {
@@ -127,16 +132,18 @@ func (r *AuthService) RefreshToken(ctx context.Context, token string) (*transpor
 func (r *AuthService) generateToken(user *User, tokenType string) (string, error) {
 	const op = "auth.service.generateToken"
 	if tokenType == "" {
-		return "", fmt.Errorf("token type is required")
+		return "", tokenTypeRequiredErr{}
 	}
 	tokenSecret, ttl, err := r.getTokenConfig(tokenType)
 	if err != nil {
-		return "", fmt.Errorf("%s: failed to get token config: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, ErrFailedToGetTokenConfig)
 	}
 	key := []byte(tokenSecret)
 	duration, err := time.ParseDuration(ttl)
 	if err != nil {
-		return "", fmt.Errorf("%s: invalid TTL duration for %s token: %w", op, tokenType, err)
+		return "", fmt.Errorf("%s: %w", op, invalidDurationTTLErr{
+			tokenType, err,
+		})
 	}
 	claims := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
@@ -162,6 +169,6 @@ func (r *AuthService) getTokenConfig(tokenType string) (string, string, error) {
 	case RefreshTokenType:
 		return r.config.GetRefreshTokenSecret(), r.config.GetRefreshTokenTTL(), nil
 	default:
-		return "", "", fmt.Errorf("%s: unknown token type: %s", op, tokenType)
+		return "", "", fmt.Errorf("%s: %w", op, unkownTokenTypeErr{tokenType})
 	}
 }

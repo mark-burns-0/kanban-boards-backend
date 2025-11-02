@@ -2,7 +2,9 @@ package transport
 
 import (
 	"backend/internal/shared/ports/http"
+	"backend/internal/shared/utils"
 	"context"
+	"log/slog"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -13,25 +15,21 @@ const (
 	BearerPrefix       = "Bearer "
 )
 
-type LangMessage interface {
-	GetResponseMessage(ctx context.Context, key string) string
-}
-
 type AuthService interface {
-	Register(ctx context.Context, userRequest *UserCreateRequest) error
+	Register(ctx context.Context, userRequest *UserRegisterRequest) error
 	Login(ctx context.Context, userRequest *UserLoginRequest) (*TokensResponse, error)
 	RefreshToken(ctx context.Context, token string) (*TokensResponse, error)
 }
 
 type AuthHandler struct {
 	validator   http.Validator
-	lang        LangMessage
+	lang        http.LangMessage
 	authService AuthService
 }
 
 func NewAuthHandler(
 	validator http.Validator,
-	lang LangMessage,
+	lang http.LangMessage,
 	authService AuthService,
 ) *AuthHandler {
 	return &AuthHandler{
@@ -42,10 +40,11 @@ func NewAuthHandler(
 }
 
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
-	body := &UserLoginRequest{}
-	if err := c.BodyParser(&body); err != nil {
+	body, err := utils.ParseBody[UserLoginRequest](c)
+	if err != nil {
+		slog.Error("Invalid request body", slog.Any("err", err))
 		return c.Status(fiber.StatusBadRequest).
-			JSON(fiber.Map{"error": err.Error()})
+			JSON(fiber.Map{"error": "Invalid request body"})
 	}
 	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
 		if err != nil {
@@ -55,24 +54,35 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	}
 	tokenResponse, err := h.authService.Login(c.Context(), body)
 	if err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "Server error"})
 	}
 	return c.JSON(tokenResponse)
 }
 
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
-	body := &UserCreateRequest{}
-	if err := c.BodyParser(&body); err != nil {
-		return c.JSON(fiber.Map{"error": err.Error()})
+	const op = "user.transport.auth_handler.Register"
+	body, err := utils.ParseBody[UserRegisterRequest](c)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).
+			JSON(fiber.Map{"error": "Invalid request body"})
 	}
 	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
 		if err != nil {
-			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
+			slog.Error("validator error",
+				slog.String("op", op),
+				slog.Any("err", err),
+			)
+			return c.Status(statusCode).JSON(fiber.Map{"error": "Validation error"})
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
 	if err := h.authService.Register(c.Context(), body); err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": err.Error()})
+		slog.Error(
+			"service error",
+			slog.String("operation", op),
+			slog.Any("error", err),
+		)
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "Server error"})
 	}
 	return c.JSON(fiber.Map{
 		"message": "User registered successfully",
