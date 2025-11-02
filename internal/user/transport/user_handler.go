@@ -3,6 +3,7 @@ package transport
 import (
 	"backend/internal/shared/ports/http"
 	"backend/internal/shared/utils"
+	"backend/internal/user/domain"
 	"context"
 	"log/slog"
 
@@ -15,7 +16,7 @@ const (
 )
 
 type UserService interface {
-	Current(ctx context.Context, userID uint64) (*UserResponse, error)
+	Current(ctx context.Context, userID uint64) (*domain.User, error)
 	Update(ctx context.Context, userRequest *UserRequest, userID uint64) error
 }
 

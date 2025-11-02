@@ -18,9 +18,9 @@ const (
 )
 
 type AuthService interface {
-	Register(ctx context.Context, userRequest *UserRegisterRequest) error
-	Login(ctx context.Context, userRequest *UserLoginRequest) (*TokensResponse, error)
-	RefreshToken(ctx context.Context, token string) (*TokensResponse, error)
+	Register(ctx context.Context, req *domain.RegisterCommand) error
+	Login(ctx context.Context, req *domain.LoginCommand) (*domain.Tokens, error)
+	RefreshToken(ctx context.Context, token string) (*domain.Tokens, error)
 }
 
 type AuthHandler struct {
