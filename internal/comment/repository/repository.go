@@ -1,6 +1,7 @@
 package comment
 
 import (
+	"backend/internal/comment/domain"
 	"backend/internal/shared/utils"
 	"context"
 	"database/sql"
@@ -31,7 +32,7 @@ func NewCommentRepository(
 	}
 }
 
-func (r *CommentRepository) Create(ctx context.Context, comment *Comment) error {
+func (r *CommentRepository) Create(ctx context.Context, comment *domain.Comment) error {
 	const op = "comment.repository.Create"
 	query := `INSERT INTO comments (card_id, user_id, text) VALUES($1, $2,$3)`
 	return utils.OpExec(
@@ -39,13 +40,13 @@ func (r *CommentRepository) Create(ctx context.Context, comment *Comment) error 
 		r.storage.ExecContext,
 		op,
 		query,
-		ErrCommentAlreadyExists,
+		domain.ErrCommentAlreadyExists,
 		comment.CardID,
 		comment.UserID,
 		comment.Text,
 	)
 }
-func (r *CommentRepository) Update(ctx context.Context, comment *Comment) error {
+func (r *CommentRepository) Update(ctx context.Context, comment *domain.Comment) error {
 	const op = "comment.repository.Update"
 	query := "UPDATE comments SET text = $1, updated_at = NOW() WHERE id = $2 AND card_id = $3 AND user_id = $4"
 	return utils.OpExec(
@@ -53,7 +54,7 @@ func (r *CommentRepository) Update(ctx context.Context, comment *Comment) error 
 		r.storage.ExecContext,
 		op,
 		query,
-		ErrCardNotFound,
+		domain.ErrCardNotFound,
 		comment.Text,
 		comment.ID,
 		comment.CardID,
@@ -70,7 +71,7 @@ func (r *CommentRepository) Delete(ctx context.Context, commentID uint64) error 
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if !exists {
-		return fmt.Errorf("%s: %w", op, ErrCardNotFound)
+		return fmt.Errorf("%s: %w", op, domain.ErrCardNotFound)
 	}
 	query := "UPDATE comments SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL"
 	_, err := r.storage.ExecContext(ctx, query, commentID)

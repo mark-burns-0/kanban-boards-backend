@@ -1,4 +1,4 @@
-package comment
+package domain
 
 import (
 	"context"
@@ -33,9 +33,8 @@ func NewCommentService(repository CommentRepo) *CommentService {
 	}
 }
 
-func (s *CommentService) Create(ctx context.Context, req *CommentRequest) error {
+func (s *CommentService) Create(ctx context.Context, req *Comment) error {
 	const op = "comment.service.Create"
-
 	comment := &Comment{
 		UserID: req.UserID,
 		CardID: req.CardID,
@@ -48,15 +47,13 @@ func (s *CommentService) Create(ctx context.Context, req *CommentRequest) error 
 	return nil
 }
 
-func (s *CommentService) Update(ctx context.Context, req *CommentRequest) error {
+func (s *CommentService) Update(ctx context.Context, req *Comment) error {
 	const op = "comment.service.Update"
-
 	comment := &Comment{
 		ID:     req.ID,
 		CardID: req.CardID,
 		Text:   req.Text,
 	}
-
 	if err := s.repository.Update(ctx, comment); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -66,10 +63,8 @@ func (s *CommentService) Update(ctx context.Context, req *CommentRequest) error 
 
 func (s *CommentService) Delete(ctx context.Context, commentID uint64) error {
 	const op = "comment.service.Delete"
-
 	if err := s.repository.Delete(ctx, commentID); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-
 	return nil
 }
