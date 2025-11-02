@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"backend/internal/user/transport"
 	"context"
 	"fmt"
 
@@ -45,31 +44,31 @@ func NewUserService(userRepo UserRepo, config Config) *UserService {
 	}
 }
 
-func (s *UserService) Current(ctx context.Context, userID uint64) (*transport.UserResponse, error) {
+func (s *UserService) Current(ctx context.Context, userID uint64) (*User, error) {
 	const op = "user.service.Current"
 	user, err := s.userRepo.Get(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	return &transport.UserResponse{
+	return &User{
 		Name:      user.Name,
 		Email:     user.Email,
-		CreatedAt: &user.CreatedAt,
+		CreatedAt: user.CreatedAt,
 	}, nil
 }
 
-func (s *UserService) Update(ctx context.Context, userRequest *transport.UserRequest, userID uint64) error {
+func (s *UserService) Update(ctx context.Context, req *User, userID uint64) error {
 	const op = "user.service.Update"
 	user := &User{
 		ID:    userID,
-		Name:  userRequest.Name,
-		Email: userRequest.Email,
+		Name:  req.Name,
+		Email: req.Email,
 	}
-	if userRequest.Password != nil {
-		if userRequest.PasswordConfirmation == nil || *userRequest.Password != *userRequest.PasswordConfirmation {
+	if req.Password != "" {
+		if req.PasswordConfirmation == "" || req.Password != req.PasswordConfirmation {
 			return ErrPasswordMismatch
 		}
-		hashed, err := bcrypt.GenerateFromPassword([]byte(*userRequest.Password), 12)
+		hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}

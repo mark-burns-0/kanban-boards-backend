@@ -3,7 +3,9 @@ package transport
 import (
 	"backend/internal/shared/ports/http"
 	"backend/internal/shared/utils"
+	"backend/internal/user/domain"
 	"context"
+	"errors"
 	"log/slog"
 	"strings"
 
@@ -40,6 +42,7 @@ func NewAuthHandler(
 }
 
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
+	const op = "user.transport.auth_handler.Login"
 	body, err := utils.ParseBody[UserLoginRequest](c)
 	if err != nil {
 		slog.Error("Invalid request body", slog.Any("err", err))
@@ -54,6 +57,19 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	}
 	tokenResponse, err := h.authService.Login(c.Context(), body)
 	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrUserAlreadyExists):
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "User already exists"})
+		case errors.Is(err, domain.ErrUserNotFound):
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Email not found"})
+		case errors.Is(err, domain.ErrInvalidPassword):
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid password"})
+		}
+		slog.Error(
+			"service error",
+			slog.String("operation", op),
+			slog.Any("error", err),
+		)
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "Server error"})
 	}
 	return c.JSON(tokenResponse)
@@ -77,6 +93,14 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
 	if err := h.authService.Register(c.Context(), body); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrUserAlreadyExists):
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "User already exists"})
+		case errors.Is(err, domain.ErrUserNotFound):
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Email not found"})
+		case errors.Is(err, domain.ErrInvalidPassword):
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid password"})
+		}
 		slog.Error(
 			"service error",
 			slog.String("operation", op),
@@ -90,9 +114,10 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
+	const op = "user.transport.auth_handler.RefreshToken"
 	token := c.Get(RefreshTokenHeader)
 	if token == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "missing refresh token"})
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 	token = strings.TrimPrefix(token, BearerPrefix)
 	tokenResponse, err := h.authService.RefreshToken(c.Context(), token)

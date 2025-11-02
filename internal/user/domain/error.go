@@ -10,17 +10,18 @@ var (
 	ErrUserAlreadyExists = errors.New("user already exists")
 
 	ErrFailedToGetTokenConfig = errors.New("failed to get token config")
+	ErrInvalidPassword        = errors.New("invalid password")
 )
 
-type UserAlreadyExists struct {
+type UserAlreadyExistsErr struct {
 	email string
 }
 
-func (e UserAlreadyExists) Error() string {
+func (e UserAlreadyExistsErr) Error() string {
 	return fmt.Sprintf("user with email %s already exists", e.email)
 }
 
-func (e UserAlreadyExists) Unwrap() error {
+func (e UserAlreadyExistsErr) Unwrap() error {
 	return ErrUserAlreadyExists
 }
 
@@ -44,7 +45,7 @@ func (e InvalidPasswordErr) Error() string {
 }
 
 func (e InvalidPasswordErr) Unwrap() error {
-	return e
+	return ErrInvalidPassword
 }
 
 type tokenTypeRequiredErr struct{}

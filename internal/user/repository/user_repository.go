@@ -23,7 +23,6 @@ func NewUserRepository(storage Storage) (*UserRepository, error) {
 	repo := &UserRepository{
 		storage: storage,
 	}
-
 	repo.updateStmt, err = storage.GetDB().Prepare(`
 		UPDATE users SET name = $1, email = $2, updated_at = NOW()
 		WHERE id = $3 AND deleted_at IS NULL

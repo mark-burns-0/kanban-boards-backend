@@ -38,6 +38,7 @@ func NewUserHandler(
 }
 
 func (h *UserHandler) Current(c *fiber.Ctx) error {
+	const op = "user.transport.user_handler.Current"
 	userID, ok := c.Locals(UserIDKey).(uint64)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})

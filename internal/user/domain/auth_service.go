@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"backend/internal/user/transport"
 	"context"
 	"fmt"
 	"strconv"
@@ -47,11 +46,11 @@ func NewAuthService(authRepo AuthRepo, config Config) *AuthService {
 	}
 }
 
-func (r *AuthService) Register(ctx context.Context, req *transport.UserRegisterRequest) error {
+func (r *AuthService) Register(ctx context.Context, req *RegisterCommand) error {
 	const op = "auth.service.Register"
 	user, _ := r.authRepo.GetByEmail(ctx, req.Email)
 	if user != nil {
-		return fmt.Errorf("%s: %w", op, UserAlreadyExists{
+		return fmt.Errorf("%s: %w", op, UserAlreadyExistsErr{
 			email: req.Email,
 		})
 	}
@@ -71,7 +70,7 @@ func (r *AuthService) Register(ctx context.Context, req *transport.UserRegisterR
 	return r.authRepo.Create(ctx, &newUser)
 }
 
-func (r *AuthService) Login(ctx context.Context, req *transport.UserLoginRequest) (*transport.TokensResponse, error) {
+func (r *AuthService) Login(ctx context.Context, req *LoginCommand) (*Tokens, error) {
 	const op = "auth.service.Login"
 	user, _ := r.authRepo.GetByEmail(ctx, req.Email)
 	if user == nil {
@@ -96,13 +95,13 @@ func (r *AuthService) Login(ctx context.Context, req *transport.UserLoginRequest
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	return &transport.TokensResponse{
+	return &Tokens{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
 }
 
-func (r *AuthService) RefreshToken(ctx context.Context, token string) (*transport.TokensResponse, error) {
+func (r *AuthService) RefreshToken(ctx context.Context, token string) (*Tokens, error) {
 	const op = "auth.service.RefreshToken"
 	user, err := r.authRepo.GetByRefreshToken(ctx, token)
 	if err != nil {
@@ -123,7 +122,7 @@ func (r *AuthService) RefreshToken(ctx context.Context, token string) (*transpor
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	return &transport.TokensResponse{
+	return &Tokens{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
@@ -153,7 +152,6 @@ func (r *AuthService) generateToken(user *User, tokenType string) (string, error
 			},
 			"exp": time.Now().Add(duration).Unix(),
 		})
-
 	signedString, err := claims.SignedString(key)
 	if err != nil {
 		return "", fmt.Errorf("%s: failed to sign %s token: %w", op, tokenType, err)
