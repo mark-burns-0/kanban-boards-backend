@@ -1,7 +1,7 @@
 package board
 
 import (
-	"backend/internal/shared/dto"
+	"backend/internal/card/domain"
 	"cmp"
 	"context"
 	"fmt"
@@ -45,7 +45,11 @@ type BoardRepo interface {
 }
 
 type CardService interface {
-	GetListWithComments(ctx context.Context, boardID string) ([]*dto.CardWithComments, error)
+	GetListWithComments(ctx context.Context, boardID string) ([]*domain.CardWithComments, error)
+	Create(ctx context.Context, req *domain.Card) error
+	Update(ctx context.Context, req *domain.Card) error
+	Delete(ctx context.Context, req *domain.Card) error
+	MoveToNewPosition(ctx context.Context, req *domain.CardMoveCommand) error
 }
 
 type BoardService struct {
@@ -102,14 +106,13 @@ func (s *BoardService) GetList(
 	return response, nil
 }
 
-func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*SingleBoardResponse[dto.CardWithComments], error) {
+func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*SingleBoardResponse[domain.CardWithComments], error) {
 	const op = "board.service.GetByUUID"
 	var (
 		rawBoard   *Board
 		rawColumns []*BoardColumn
-		cards      []*dto.CardWithComments
+		cards      []*domain.CardWithComments
 	)
-
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
 		result, err := s.cardService.GetListWithComments(ctx, boardUUID)
@@ -144,7 +147,7 @@ func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*Single
 	slices.SortFunc(columns, func(a, b *BoardColumnResponse) int {
 		return cmp.Compare(a.ID, b.ID)
 	})
-	board := &SingleBoardResponse[dto.CardWithComments]{
+	board := &SingleBoardResponse[domain.CardWithComments]{
 		BoardResponse: &BoardResponse{
 			ID:          rawBoard.ID,
 			Name:        rawBoard.Name,

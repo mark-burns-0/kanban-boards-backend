@@ -47,13 +47,15 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	const op = "user.transport.auth_handler.Login"
 	body, err := utils.ParseBody[UserLoginRequest](c)
 	if err != nil {
-		slog.Error("Invalid request body", slog.Any("err", err))
-		return c.Status(fiber.StatusBadRequest).
-			JSON(fiber.Map{"error": "Invalid request body"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
 		if err != nil {
-			return c.Status(statusCode).JSON(fiber.Map{"error": err.Error()})
+			slog.Error("validator error",
+				slog.String("op", op),
+				slog.Any("err", err),
+			)
+			return c.Status(statusCode).JSON(fiber.Map{"error": "Validation error"})
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}

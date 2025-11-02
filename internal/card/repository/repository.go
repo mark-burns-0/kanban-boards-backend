@@ -1,6 +1,7 @@
 package card
 
 import (
+	"backend/internal/card/domain"
 	"backend/internal/shared/utils"
 	"context"
 	"database/sql"
@@ -33,7 +34,7 @@ func NewCardRepository(
 	}
 }
 
-func (r *CardRepository) GetListWithComments(ctx context.Context, boardID string) ([]*CardWithComments, error) {
+func (r *CardRepository) GetListWithComments(ctx context.Context, boardID string) ([]*domain.CardWithComments, error) {
 	const op = "card.repository.GetListWithComment"
 	query := `
 		SELECT
@@ -60,11 +61,11 @@ func (r *CardRepository) GetListWithComments(ctx context.Context, boardID string
 	}
 	defer rows.Close()
 
-	cardComments := make(map[uint64]*CardWithComments)
+	cardComments := make(map[uint64]*domain.CardWithComments)
 	for rows.Next() {
-		var cardID, cardPosition, columnID, commentID, commentCardID *uint64
-		var boardID, cardText, cardDescription, commentText *string
-		var properties *cardProperties
+		var cardID, cardPosition, columnID, commentID, commentCardID sql.NullInt64
+		var boardID, cardText, cardDescription, commentText sql.NullString
+		var properties domain.CardProperties
 		var cardCreatedAt, commentCreatedAt *time.Time
 
 		err := rows.Scan(
@@ -75,42 +76,43 @@ func (r *CardRepository) GetListWithComments(ctx context.Context, boardID string
 			fmt.Println(err)
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
-		if cardID == nil {
+		if !cardID.Valid {
 			continue
 		}
-		_, ok := cardComments[*cardID]
+		cardIDUint64 := uint64(cardID.Int64)
+		_, ok := cardComments[cardIDUint64]
 		if !ok {
-			cardComments[*cardID] = &CardWithComments{
-				ID:             cardID,
-				BoardID:        boardID,
-				ColumnID:       columnID,
-				Text:           cardText,
-				Description:    cardDescription,
-				Position:       cardPosition,
-				cardProperties: properties,
-				CreatedAt:      cardCreatedAt,
-				Comments:       []*CardComment{},
+			cardComments[cardIDUint64] = &domain.CardWithComments{
+				ID:             uint64(cardID.Int64),
+				BoardID:        boardID.String,
+				ColumnID:       uint64(columnID.Int64),
+				Text:           cardText.String,
+				Description:    cardDescription.String,
+				Position:       uint64(cardPosition.Int64),
+				CardProperties: properties,
+				CreatedAt:      *cardCreatedAt,
+				Comments:       []domain.CardComment{},
 			}
 		}
-		if commentID != nil {
-			cardComments[*cardID].Comments = append(cardComments[*cardID].Comments, &CardComment{
-				ID:        commentID,
-				CardID:    commentCardID,
-				Text:      commentText,
-				CreatedAt: commentCreatedAt,
+		if commentID.Valid {
+			cardComments[cardIDUint64].Comments = append(cardComments[cardIDUint64].Comments, domain.CardComment{
+				ID:        uint64(commentID.Int64),
+				CardID:    uint64(commentCardID.Int64),
+				Text:      string(commentText.String),
+				CreatedAt: *commentCreatedAt,
 			})
 		}
 	}
-	cardWithComments := make([]*CardWithComments, 0, len(cardComments))
+	cardWithComments := make([]*domain.CardWithComments, 0, len(cardComments))
 	for _, card := range cardComments {
 		cardWithComments = append(cardWithComments, card)
 	}
 	return cardWithComments, nil
 }
 
-func (r *CardRepository) GetById(ctx context.Context, card *Card) (*Card, error) {
+func (r *CardRepository) GetById(ctx context.Context, card *domain.Card) (*domain.Card, error) {
 	const op = "card.repository.GetById"
-	data := &Card{}
+	data := &domain.Card{}
 	query := "SELECT id, column_id, board_id, text, description, position FROM cards WHERE id = $1 AND deleted_at IS NULL"
 	row := r.storage.QueryRowContext(ctx, query, card.ID)
 	err := row.Scan(
@@ -123,14 +125,14 @@ func (r *CardRepository) GetById(ctx context.Context, card *Card) (*Card, error)
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("%s: %w", op, ErrCardNotFound)
+			return nil, fmt.Errorf("%s: %w", op, domain.ErrCardNotFound)
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return data, nil
 }
 
-func (r *CardRepository) Create(ctx context.Context, card *Card) error {
+func (r *CardRepository) Create(ctx context.Context, card *domain.Card) error {
 	const op = "card.repository.Create"
 	query := `
 		INSERT INTO cards (board_id, column_id, text, description, position, properties)
@@ -141,17 +143,17 @@ func (r *CardRepository) Create(ctx context.Context, card *Card) error {
 		r.storage.ExecContext,
 		op,
 		query,
-		ErrCardAlreadyExists,
+		domain.ErrCardAlreadyExists,
 		card.BoardID,
 		card.ColumnID,
 		card.Text,
 		card.Description,
 		card.Position,
-		card.cardProperties,
+		card.CardProperties,
 	)
 }
 
-func (r *CardRepository) Update(ctx context.Context, card *Card) error {
+func (r *CardRepository) Update(ctx context.Context, card *domain.Card) error {
 	const op = "card.repository.Update"
 	query := `
 		UPDATE cards
@@ -163,16 +165,16 @@ func (r *CardRepository) Update(ctx context.Context, card *Card) error {
 		r.storage.ExecContext,
 		op,
 		query,
-		ErrCardNotFound,
+		domain.ErrCardNotFound,
 		card.Text,
 		card.Description,
-		card.cardProperties,
+		card.CardProperties,
 		card.ID,
 		card.BoardID,
 	)
 }
 
-func (r *CardRepository) Delete(ctx context.Context, card *Card) error {
+func (r *CardRepository) Delete(ctx context.Context, card *domain.Card) error {
 	const op = "card.repository.Delete"
 	tx, err := r.storage.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelRepeatableRead,
@@ -187,17 +189,17 @@ func (r *CardRepository) Delete(ctx context.Context, card *Card) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	query = `UPDATE cards SET deleted_at = NOW(), position = NULL WHERE id = $1 AND board_id = $2 AND deleted_at IS NULL`
-	err = utils.OpExec(ctx, tx.ExecContext, op, query, ErrCardNotFound, card.ID, card.BoardID)
+	err = utils.OpExec(ctx, tx.ExecContext, op, query, domain.ErrCardNotFound, card.ID, card.BoardID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("%s: %w", op, ErrCardNotFound)
+			return fmt.Errorf("%s: %w", op, domain.ErrCardNotFound)
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return tx.Commit()
 }
 
-func (r *CardRepository) Exists(ctx context.Context, card *Card) (bool, error) {
+func (r *CardRepository) Exists(ctx context.Context, card *domain.Card) (bool, error) {
 	const op = "card.repository.Exists"
 	row := r.storage.QueryRowContext(ctx,
 		"SELECT EXISTS (SELECT 1 FROM cards WHERE id = $1 AND board_id = $2)",
@@ -245,7 +247,7 @@ func (r *CardRepository) MoveToNewPosition(
 	_, err = tx.ExecContext(ctx, moveToTempPosition, formPositionInt, cardID, uuid, fromColumnID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("%s: %w", op, ErrCardNotFound)
+			return fmt.Errorf("%s: %w", op, domain.ErrCardNotFound)
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -290,7 +292,7 @@ func (r *CardRepository) MoveToNewPosition(
 	_, err = tx.ExecContext(ctx, moveFromTempTo, toCardPosition, toColumnID, cardID, uuid)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("%s: %w", op, ErrCardNotFound)
+			return fmt.Errorf("%s: %w", op, domain.ErrCardNotFound)
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}

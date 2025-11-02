@@ -2,7 +2,9 @@ package api
 
 import (
 	"backend/internal/board"
-	"backend/internal/card"
+	cardService "backend/internal/card/domain"
+	cardRepository "backend/internal/card/repository"
+	cardTransport "backend/internal/card/transport"
 	commentDomain "backend/internal/comment/domain"
 	commentRepository "backend/internal/comment/repository"
 	commentTransport "backend/internal/comment/transport"
@@ -47,13 +49,13 @@ func Run() error {
 	}
 	authRepo := userRepository.NewAuthRepository(storage)
 	boardRepo := board.NewBoardRepository(storage)
-	cardRepo := card.NewCardRepository(storage)
+	cardRepo := cardRepository.NewCardRepository(storage)
 	commentRepo := commentRepository.NewCommentRepository(storage)
 
 	//services
 	userService := userDomain.NewUserService(userRepo, config)
 	authService := userDomain.NewAuthService(authRepo, config)
-	cardService := card.NewCardService(cardRepo, boardRepo)
+	cardService := cardService.NewCardService(cardRepo, boardRepo)
 	boardService := board.NewBoardService(boardRepo, cardService)
 	commentService := commentDomain.NewCommentService(commentRepo)
 
@@ -62,7 +64,7 @@ func Run() error {
 		AuthHandler:    userTransport.NewAuthHandler(validator, lang, authService),
 		UserHandler:    userTransport.NewUserHandler(validator, lang, userService),
 		BoardHandler:   board.NewBoardHandler(validator, lang, boardService),
-		CardHandler:    card.NewCardHandler(validator, lang, cardService),
+		CardHandler:    cardTransport.NewCardHandler(validator, lang, cardService),
 		CommentHandler: commentTransport.NewCommentHandler(validator, lang, commentService),
 	}
 
