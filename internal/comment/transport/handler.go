@@ -24,15 +24,16 @@ const (
 )
 
 type CommentService interface {
-	Create(ctx context.Context, req *Comment) error
-	Update(ctx context.Context, req *Comment) error
+	Create(ctx context.Context, req *domain.Comment) error
+	Update(ctx context.Context, req *domain.Comment) error
 	Delete(ctx context.Context, commentID uint64) error
 }
 
 type CommentHandler struct {
-	validaotr http.Validator
-	lang      http.LangMessage
-	service   CommentService
+	validaotr     http.Validator
+	lang          http.LangMessage
+	service       CommentService
+	commentMapper *CommentMapper
 }
 
 func NewCommentHandler(
@@ -41,9 +42,10 @@ func NewCommentHandler(
 	service CommentService,
 ) *CommentHandler {
 	return &CommentHandler{
-		validaotr: validator,
-		lang:      lang,
-		service:   service,
+		validaotr:     validator,
+		lang:          lang,
+		service:       service,
+		commentMapper: &CommentMapper{},
 	}
 }
 
@@ -69,7 +71,7 @@ func (h *CommentHandler) Create(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-	if err := h.service.Create(c.Context(), comment); err != nil {
+	if err := h.service.Create(c.Context(), h.commentMapper.ToComment(comment)); err != nil {
 		switch {
 		case errors.Is(err, domain.ErrCommentAlreadyExists):
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "Comment already exists"})
@@ -117,7 +119,7 @@ func (h *CommentHandler) Update(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-	if err := h.service.Update(c.Context(), comment); err != nil {
+	if err := h.service.Update(c.Context(), h.commentMapper.ToComment(comment)); err != nil {
 		switch {
 		case errors.Is(err, domain.ErrCardNotFound):
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Card not found"})
