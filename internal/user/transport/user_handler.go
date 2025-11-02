@@ -17,13 +17,14 @@ const (
 
 type UserService interface {
 	Current(ctx context.Context, userID uint64) (*domain.User, error)
-	Update(ctx context.Context, userRequest *UserRequest, userID uint64) error
+	Update(ctx context.Context, req *domain.User, userID uint64) error
 }
 
 type UserHandler struct {
 	validator   http.Validator
 	lang        http.LangMessage
 	userService UserService
+	mapperUser  *UserMapper
 }
 
 func NewUserHandler(
@@ -35,6 +36,7 @@ func NewUserHandler(
 		validator:   validator,
 		lang:        lang,
 		userService: userService,
+		mapperUser:  &UserMapper{},
 	}
 }
 
@@ -71,7 +73,7 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
-	if err := h.userService.Update(c.Context(), body, userID); err != nil {
+	if err := h.userService.Update(c.Context(), h.mapperUser.ToUserDomain(body), userID); err != nil {
 		slog.Error(
 			"service error",
 			slog.String("operation", op),

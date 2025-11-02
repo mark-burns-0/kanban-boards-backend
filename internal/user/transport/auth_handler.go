@@ -27,6 +27,7 @@ type AuthHandler struct {
 	validator   http.Validator
 	lang        http.LangMessage
 	authService AuthService
+	authMapper  AuthMapper
 }
 
 func NewAuthHandler(
@@ -38,6 +39,7 @@ func NewAuthHandler(
 		validator:   validator,
 		lang:        lang,
 		authService: authService,
+		authMapper:  AuthMapper{},
 	}
 }
 
@@ -55,7 +57,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-	tokenResponse, err := h.authService.Login(c.Context(), body)
+	tokenResponse, err := h.authService.Login(c.Context(), h.authMapper.ToLoginCommand(body))
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrUserAlreadyExists):
@@ -72,7 +74,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		)
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "Server error"})
 	}
-	return c.JSON(tokenResponse)
+	return c.JSON(h.authMapper.ToResponseTokens(tokenResponse))
 }
 
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
@@ -92,7 +94,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-	if err := h.authService.Register(c.Context(), body); err != nil {
+	if err := h.authService.Register(c.Context(), h.authMapper.ToRegisterCommand(body)); err != nil {
 		switch {
 		case errors.Is(err, domain.ErrUserAlreadyExists):
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "User already exists"})
@@ -124,5 +126,5 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
-	return c.JSON(tokenResponse)
+	return c.JSON(h.authMapper.ToResponseTokens(tokenResponse))
 }
