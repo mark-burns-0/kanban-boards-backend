@@ -1,7 +1,6 @@
 package api
 
 import (
-	"backend/internal/auth"
 	"backend/internal/board"
 	"backend/internal/card"
 	"backend/internal/comment"
@@ -10,7 +9,9 @@ import (
 	"backend/internal/platform/lang"
 	"backend/internal/platform/storage/postgres"
 	"backend/internal/platform/validation"
-	"backend/internal/user"
+	userDomain "backend/internal/user/domain"
+	userRepository "backend/internal/user/repository"
+	userTransport "backend/internal/user/transport"
 	"context"
 	"fmt"
 	"log/slog"
@@ -38,26 +39,26 @@ func Run() error {
 	}
 
 	// repositories
-	userRepo, err := user.NewUserRepository(storage)
+	userRepo, err := userRepository.NewUserRepository(storage)
 	if err != nil {
 		return err
 	}
-	authRepo := auth.NewAuthRepository(storage)
+	authRepo := userRepository.NewAuthRepository(storage)
 	boardRepo := board.NewBoardRepository(storage)
 	cardRepo := card.NewCardRepository(storage)
 	commentRepo := comment.NewCommentRepository(storage)
 
 	//services
-	userService := user.NewUserService(userRepo, config)
-	authService := auth.NewAuthService(authRepo, config)
+	userService := userDomain.NewUserService(userRepo, config)
+	authService := userDomain.NewAuthService(authRepo, config)
 	cardService := card.NewCardService(cardRepo, boardRepo)
 	boardService := board.NewBoardService(boardRepo, cardService)
 	commentService := comment.NewCommentService(commentRepo)
 
 	// handlers
 	handlers := http.Handlers{
-		AuthHandler:    auth.NewAuthHandler(validator, lang, authService),
-		UserHandler:    user.NewUserHandler(validator, lang, userService),
+		AuthHandler:    userTransport.NewAuthHandler(validator, lang, authService),
+		UserHandler:    userTransport.NewUserHandler(validator, lang, userService),
 		BoardHandler:   board.NewBoardHandler(validator, lang, boardService),
 		CardHandler:    card.NewCardHandler(validator, lang, cardService),
 		CommentHandler: comment.NewCommentHandler(validator, lang, commentService),

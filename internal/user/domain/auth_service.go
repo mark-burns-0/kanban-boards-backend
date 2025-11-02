@@ -1,6 +1,7 @@
-package auth
+package domain
 
 import (
+	"backend/internal/user/transport"
 	"context"
 	"fmt"
 	"strconv"
@@ -34,14 +35,6 @@ type AuthRepo interface {
 	AuthUpdater
 }
 
-type Config interface {
-	GetAccessTokenSecret() string
-	GetAccessTokenTTL() string
-	GetRefreshTokenSecret() string
-	GetRefreshTokenTTL() string
-	GetBcryptPower() string
-}
-
 type AuthService struct {
 	authRepo AuthRepo
 	config   Config
@@ -54,7 +47,7 @@ func NewAuthService(authRepo AuthRepo, config Config) *AuthService {
 	}
 }
 
-func (r *AuthService) Register(ctx context.Context, userRequest *UserCreateRequest) error {
+func (r *AuthService) Register(ctx context.Context, userRequest *transport.UserCreateRequest) error {
 	const op = "auth.service.Register"
 	user, _ := r.authRepo.GetByEmail(ctx, userRequest.Email)
 	if user != nil {
@@ -76,7 +69,7 @@ func (r *AuthService) Register(ctx context.Context, userRequest *UserCreateReque
 	return r.authRepo.Create(ctx, &newUser)
 }
 
-func (r *AuthService) Login(ctx context.Context, userRequest *UserLoginRequest) (*TokensResponse, error) {
+func (r *AuthService) Login(ctx context.Context, userRequest *transport.UserLoginRequest) (*transport.TokensResponse, error) {
 	const op = "auth.service.Login"
 	user, _ := r.authRepo.GetByEmail(ctx, userRequest.Email)
 	if user == nil {
@@ -98,13 +91,13 @@ func (r *AuthService) Login(ctx context.Context, userRequest *UserLoginRequest) 
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	return &TokensResponse{
+	return &transport.TokensResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
 }
 
-func (r *AuthService) RefreshToken(ctx context.Context, token string) (*TokensResponse, error) {
+func (r *AuthService) RefreshToken(ctx context.Context, token string) (*transport.TokensResponse, error) {
 	const op = "auth.service.RefreshToken"
 	user, err := r.authRepo.GetByRefreshToken(ctx, token)
 	if err != nil {
@@ -125,7 +118,7 @@ func (r *AuthService) RefreshToken(ctx context.Context, token string) (*TokensRe
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	return &TokensResponse{
+	return &transport.TokensResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil

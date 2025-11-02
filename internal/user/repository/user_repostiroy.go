@@ -1,6 +1,7 @@
-package user
+package repository
 
 import (
+	"backend/internal/user/domain"
 	"context"
 	"database/sql"
 	"fmt"
@@ -9,19 +10,6 @@ import (
 var (
 	ErrNotFound = fmt.Errorf("not found")
 )
-
-type Storage interface {
-	Exec(query string, args ...any) (sql.Result, error)
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
-	Begin() (*sql.Tx, error)
-
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
-	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
-	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
-	GetDB() *sql.DB
-}
 
 type UserRepository struct {
 	storage                Storage
@@ -37,7 +25,7 @@ func NewUserRepository(storage Storage) (*UserRepository, error) {
 	}
 
 	repo.updateStmt, err = storage.GetDB().Prepare(`
-		UPDATE users SET name = $1, email = $2, updated_at = NOW() 
+		UPDATE users SET name = $1, email = $2, updated_at = NOW()
 		WHERE id = $3 AND deleted_at IS NULL
 	`)
 	if err != nil {
@@ -45,8 +33,8 @@ func NewUserRepository(storage Storage) (*UserRepository, error) {
 	}
 
 	repo.updateWithPasswordStmt, err = storage.GetDB().Prepare(`
-		UPDATE users SET name = $1, email = $2, password = $3, updated_at = NOW()  
-		WHERE id = $4 AND deleted_at IS NULL 
+		UPDATE users SET name = $1, email = $2, password = $3, updated_at = NOW()
+		WHERE id = $4 AND deleted_at IS NULL
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -55,9 +43,9 @@ func NewUserRepository(storage Storage) (*UserRepository, error) {
 	return repo, nil
 }
 
-func (r *UserRepository) Get(ctx context.Context, id uint64) (*User, error) {
+func (r *UserRepository) Get(ctx context.Context, id uint64) (*domain.User, error) {
 	const op = "user.repository.Get"
-	user := &User{}
+	user := &domain.User{}
 	row := r.storage.QueryRowContext(
 		ctx,
 		"SELECT id, email, name, created_at FROM users WHERE id = $1 AND deleted_at IS NULL",
@@ -69,7 +57,7 @@ func (r *UserRepository) Get(ctx context.Context, id uint64) (*User, error) {
 	return user, nil
 }
 
-func (r *UserRepository) Update(ctx context.Context, user *User) error {
+func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 	const op = "user.repository.Update"
 	if user.Password != "" {
 		res, err := r.updateWithPasswordStmt.ExecContext(

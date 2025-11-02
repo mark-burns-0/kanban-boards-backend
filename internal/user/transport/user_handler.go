@@ -1,4 +1,4 @@
-package user
+package transport
 
 import (
 	"backend/internal/shared/ports/http"
@@ -8,27 +8,25 @@ import (
 )
 
 const (
-	UserIDKey = "userID"
-)
-
-const (
+	UserIDKey      = "userID"
 	UpdatedMessage = "updated"
 )
 
-type LangMessage interface {
-	GetResponseMessage(ctx context.Context, key string) string
+type UserService interface {
+	Current(ctx context.Context, userID uint64) (*UserResponse, error)
+	Update(ctx context.Context, userRequest *UserRequest, userID uint64) error
 }
 
 type UserHandler struct {
 	validator   http.Validator
 	lang        LangMessage
-	userService *UserService
+	userService UserService
 }
 
 func NewUserHandler(
 	validator http.Validator,
 	lang LangMessage,
-	userService *UserService,
+	userService UserService,
 ) *UserHandler {
 	return &UserHandler{
 		validator:   validator,

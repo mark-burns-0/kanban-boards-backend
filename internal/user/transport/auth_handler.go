@@ -1,4 +1,4 @@
-package auth
+package transport
 
 import (
 	"backend/internal/shared/ports/http"
@@ -17,16 +17,22 @@ type LangMessage interface {
 	GetResponseMessage(ctx context.Context, key string) string
 }
 
+type AuthService interface {
+	Register(ctx context.Context, userRequest *UserCreateRequest) error
+	Login(ctx context.Context, userRequest *UserLoginRequest) (*TokensResponse, error)
+	RefreshToken(ctx context.Context, token string) (*TokensResponse, error)
+}
+
 type AuthHandler struct {
 	validator   http.Validator
 	lang        LangMessage
-	authService *AuthService
+	authService AuthService
 }
 
 func NewAuthHandler(
 	validator http.Validator,
 	lang LangMessage,
-	authService *AuthService,
+	authService AuthService,
 ) *AuthHandler {
 	return &AuthHandler{
 		validator:   validator,

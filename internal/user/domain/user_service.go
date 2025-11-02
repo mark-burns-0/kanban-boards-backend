@@ -1,6 +1,7 @@
-package user
+package domain
 
 import (
+	"backend/internal/user/transport"
 	"context"
 	"fmt"
 
@@ -44,20 +45,20 @@ func NewUserService(userRepo UserRepo, config Config) *UserService {
 	}
 }
 
-func (s *UserService) Current(ctx context.Context, userID uint64) (*UserResponse, error) {
+func (s *UserService) Current(ctx context.Context, userID uint64) (*transport.UserResponse, error) {
 	const op = "user.service.Current"
 	user, err := s.userRepo.Get(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	return &UserResponse{
+	return &transport.UserResponse{
 		Name:      user.Name,
 		Email:     user.Email,
-		CreatedAt: user.CreatedAt,
+		CreatedAt: &user.CreatedAt,
 	}, nil
 }
 
-func (s *UserService) Update(ctx context.Context, userRequest *UserRequest, userID uint64) error {
+func (s *UserService) Update(ctx context.Context, userRequest *transport.UserRequest, userID uint64) error {
 	const op = "user.service.Update"
 	user := &User{
 		ID:    userID,

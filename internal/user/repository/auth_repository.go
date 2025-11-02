@@ -1,7 +1,8 @@
-package auth
+package repository
 
 import (
 	"backend/internal/shared/utils"
+	"backend/internal/user/domain"
 	"context"
 	"database/sql"
 	"fmt"
@@ -17,6 +18,7 @@ type Storage interface {
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
+	GetDB() *sql.DB
 }
 
 type AuthRepository struct {
@@ -27,17 +29,17 @@ func NewAuthRepository(storage Storage) *AuthRepository {
 	return &AuthRepository{storage: storage}
 }
 
-func (r *AuthRepository) GetByEmail(ctx context.Context, email string) (*User, error) {
+func (r *AuthRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	const op = "auth.repository.get_by_email"
 	row := r.storage.QueryRowContext(ctx, "SELECT id, name, email, password, refresh_token FROM users WHERE email = $1 AND deleted_at IS NULL", email)
-	user := &User{}
+	user := &domain.User{}
 	if err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.RefreshToken); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return user, nil
 }
 
-func (r *AuthRepository) Create(ctx context.Context, user *User) error {
+func (r *AuthRepository) Create(ctx context.Context, user *domain.User) error {
 	const op = "auth.repository.create"
 	query := "INSERT INTO users (name, email, password, refresh_token) VALUES($1, $2, $3, $4)"
 	return utils.OpExec(
@@ -45,7 +47,7 @@ func (r *AuthRepository) Create(ctx context.Context, user *User) error {
 		r.storage.ExecContext,
 		op,
 		query,
-		ErrUserAlreadyExists,
+		domain.ErrUserAlreadyExists,
 		user.Name,
 		user.Email,
 		user.Password,
@@ -53,9 +55,9 @@ func (r *AuthRepository) Create(ctx context.Context, user *User) error {
 	)
 }
 
-func (r *AuthRepository) GetByRefreshToken(ctx context.Context, refreshToken string) (*User, error) {
+func (r *AuthRepository) GetByRefreshToken(ctx context.Context, refreshToken string) (*domain.User, error) {
 	const op = "auth.repository.getByRefreshToken"
-	user := &User{}
+	user := &domain.User{}
 	row := r.storage.QueryRowContext(ctx, "SELECT id, refresh_token FROM users WHERE refresh_token = $1 AND deleted_at IS NULL", refreshToken)
 	if err := row.Scan(&user.ID, &user.RefreshToken); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -71,7 +73,7 @@ func (r *AuthRepository) UpdateRefreshToken(ctx context.Context, userID uint64, 
 		r.storage.ExecContext,
 		op,
 		query,
-		ErrUserNotFound,
+		domain.ErrUserNotFound,
 		refreshToken,
 		userID,
 	)
