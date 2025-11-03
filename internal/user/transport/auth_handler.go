@@ -64,8 +64,6 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	tokenResponse, err := h.authService.Login(c.Context(), h.authMapper.ToLoginCommand(body))
 	if err != nil {
 		switch {
-		case errors.Is(err, domain.ErrUserAlreadyExists):
-			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "User already exists"})
 		case errors.Is(err, domain.ErrUserNotFound):
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Email not found"})
 		case errors.Is(err, domain.ErrInvalidPassword):

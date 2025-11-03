@@ -34,8 +34,8 @@ type BoardListResult struct {
 
 type BoardWithDetails[T any] struct {
 	*Board
-	Columns []*BoardColumn `json:"columns"`
-	Cards   []*T           `json:"cards"`
+	Columns []*BoardColumn
+	Cards   []*T
 }
 
 type BoardMoveCommand struct {
