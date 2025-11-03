@@ -2,6 +2,7 @@ package board
 
 import (
 	"backend/internal/board/domain"
+	"backend/internal/shared/ports/repository"
 	"backend/internal/shared/utils"
 	"context"
 	"database/sql"
@@ -9,23 +10,11 @@ import (
 	"strings"
 )
 
-type Storage interface {
-	Exec(query string, args ...any) (sql.Result, error)
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
-	Begin() (*sql.Tx, error)
-
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
-	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
-	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
-}
-
 type BoardRepository struct {
-	storage Storage
+	storage repository.Storage
 }
 
-func NewBoardRepository(storage Storage) *BoardRepository {
+func NewBoardRepository(storage repository.Storage) *BoardRepository {
 	return &BoardRepository{
 		storage: storage,
 	}

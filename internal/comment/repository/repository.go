@@ -2,30 +2,18 @@ package comment
 
 import (
 	"backend/internal/comment/domain"
+	"backend/internal/shared/ports/repository"
 	"backend/internal/shared/utils"
 	"context"
-	"database/sql"
 	"fmt"
 )
 
-type Storage interface {
-	Exec(query string, args ...any) (sql.Result, error)
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
-	Begin() (*sql.Tx, error)
-
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
-	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
-	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
-}
-
 type CommentRepository struct {
-	storage Storage
+	storage repository.Storage
 }
 
 func NewCommentRepository(
-	storage Storage,
+	storage repository.Storage,
 ) *CommentRepository {
 	return &CommentRepository{
 		storage: storage,
