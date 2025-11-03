@@ -5,6 +5,10 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+<<<<<<< Updated upstream
+=======
+	"math"
+>>>>>>> Stashed changes
 	"slices"
 
 	"golang.org/x/sync/errgroup"
@@ -67,11 +71,37 @@ func (s *BoardService) GetList(
 	ctx context.Context, filter *BoardGetFilter,
 ) (*BoardListResult, error) {
 	const op = "board.service.GetList"
+<<<<<<< Updated upstream
 	boardList, err := s.repo.GetList(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return boardList, nil
+=======
+	rawBoards, err := s.repo.GetList(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	totalPages := uint64(math.Ceil(float64(rawBoards.TotalCount) / float64(filter.PerPage)))
+	hasPrev := filter.Page > 1
+	hasNext := filter.Page < totalPages
+	var nextPage *uint64
+	if hasNext {
+		page := filter.Page + 1
+		nextPage = &page
+	}
+	response := &BoardListResult{
+		Data:        rawBoards.Data,
+		PerPage:     filter.PerPage,
+		CurrentPage: filter.Page,
+		NextPage:    nextPage,
+		TotalPages:  totalPages,
+		HasNext:     hasNext,
+		HasPrev:     hasPrev,
+		TotalCount:  rawBoards.TotalCount,
+	}
+	return response, nil
+>>>>>>> Stashed changes
 }
 
 func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*BoardWithDetails[domain.CardWithComments], error) {
@@ -112,7 +142,11 @@ func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*BoardW
 		}
 		columns = append(columns, column)
 	}
+<<<<<<< Updated upstream
 	slices.SortFunc(columns, func(a, b *BoardColumn) int {
+=======
+	slices.SortStableFunc(columns, func(a, b *BoardColumn) int {
+>>>>>>> Stashed changes
 		return cmp.Compare(a.ID, b.ID)
 	})
 	board := &BoardWithDetails[domain.CardWithComments]{

@@ -42,6 +42,10 @@ type BoardHandler struct {
 	validator    http.Validator
 	lang         LangMessage
 	boardService BoardService
+<<<<<<< Updated upstream
+=======
+	boardMapper  *BoardMapper
+>>>>>>> Stashed changes
 }
 
 func NewBoardHandler(validator http.Validator, lang LangMessage, boardService BoardService) *BoardHandler {
@@ -49,6 +53,10 @@ func NewBoardHandler(validator http.Validator, lang LangMessage, boardService Bo
 		validator:    validator,
 		lang:         lang,
 		boardService: boardService,
+<<<<<<< Updated upstream
+=======
+		boardMapper:  &BoardMapper{},
+>>>>>>> Stashed changes
 	}
 }
 
@@ -57,12 +65,19 @@ func (h *BoardHandler) GetByUUID(c *fiber.Ctx) error {
 	if uuid == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing board ID"})
 	}
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 	response, err := h.boardService.GetByUUID(c.Context(), uuid)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err})
 	}
+<<<<<<< Updated upstream
 	return c.JSON(response)
+=======
+	return c.JSON(h.boardMapper.ToSingleBoardResponse(response))
+>>>>>>> Stashed changes
 }
 
 func (h *BoardHandler) GetList(c *fiber.Ctx) error {
@@ -70,19 +85,30 @@ func (h *BoardHandler) GetList(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err})
 	}
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
 		if err != nil {
 			return c.Status(statusCode).JSON(fiber.Map{"error": err})
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
+<<<<<<< Updated upstream
 
 	response, err := h.boardService.GetList(c.Context(), body)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err})
 	}
 	return c.JSON(response)
+=======
+	response, err := h.boardService.GetList(c.Context(), h.boardMapper.ToBoardGetFilter(body))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err})
+	}
+	return c.JSON(h.boardMapper.ToBoardListResponse(response))
+>>>>>>> Stashed changes
 }
 
 func (h *BoardHandler) Store(c *fiber.Ctx) error {
@@ -98,7 +124,11 @@ func (h *BoardHandler) Store(c *fiber.Ctx) error {
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
 
+<<<<<<< Updated upstream
 	if err := h.boardService.Create(c.Context(), body); err != nil {
+=======
+	if err := h.boardService.Create(c.Context(), h.boardMapper.ToBoard(body)); err != nil {
+>>>>>>> Stashed changes
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err})
 	}
 	return c.Status(fiber.StatusCreated).JSON(
@@ -126,7 +156,11 @@ func (h *BoardHandler) Update(c *fiber.Ctx) error {
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
 
+<<<<<<< Updated upstream
 	if err := h.boardService.Update(c.Context(), body); err != nil {
+=======
+	if err := h.boardService.Update(c.Context(), h.boardMapper.ToBoard(body)); err != nil {
+>>>>>>> Stashed changes
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err})
 	}
 	return c.Status(fiber.StatusOK).JSON(
@@ -157,14 +191,21 @@ func (h *BoardHandler) CreateColumn(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing board ID"})
 	}
 	body.BoardID = uuid
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
 		if err != nil {
 			return c.Status(statusCode).JSON(fiber.Map{"error": err})
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
+<<<<<<< Updated upstream
 	if err := h.boardService.CreateColumn(c.Context(), body); err != nil {
+=======
+	if err := h.boardService.CreateColumn(c.Context(), h.boardMapper.ToBoardColumn(body)); err != nil {
+>>>>>>> Stashed changes
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err})
 	}
 	return c.Status(fiber.StatusCreated).JSON(
@@ -196,7 +237,11 @@ func (h *BoardHandler) UpdateColumn(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
+<<<<<<< Updated upstream
 	if err := h.boardService.UpdateColumn(c.Context(), body); err != nil {
+=======
+	if err := h.boardService.UpdateColumn(c.Context(), h.boardMapper.ToBoardColumn(body)); err != nil {
+>>>>>>> Stashed changes
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err})
 	}
 	return c.Status(fiber.StatusOK).JSON(
@@ -219,8 +264,18 @@ func (h *BoardHandler) DeleteColumn(c *fiber.Ctx) error {
 	}
 	body.ID = columnIDUint64
 	body.BoardID = uuid
+<<<<<<< Updated upstream
 
 	if err := h.boardService.DeleteColumn(c.Context(), body); err != nil {
+=======
+	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
+		if err != nil {
+			return c.Status(statusCode).JSON(fiber.Map{"error": err})
+		}
+		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
+	}
+	if err := h.boardService.DeleteColumn(c.Context(), h.boardMapper.ToBoardColumn(body)); err != nil {
+>>>>>>> Stashed changes
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err})
 	}
 	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{})
@@ -248,7 +303,11 @@ func (h *BoardHandler) MoveColumn(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
+<<<<<<< Updated upstream
 	if err := h.boardService.MoveColumn(c.Context(), body); err != nil {
+=======
+	if err := h.boardService.MoveColumn(c.Context(), h.boardMapper.ToBoardMoveCommand(body)); err != nil {
+>>>>>>> Stashed changes
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err})
 	}
 	return c.Status(fiber.StatusOK).JSON(

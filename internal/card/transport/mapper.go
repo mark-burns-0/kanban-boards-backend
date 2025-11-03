@@ -5,6 +5,10 @@ import "backend/internal/card/domain"
 type CardMapper struct{}
 
 func (m *CardMapper) ToCardMoveCommand(req *CardMoveRequest) *domain.CardMoveCommand {
+	if req == nil {
+		return nil
+	}
+
 	return &domain.CardMoveCommand{
 		ID:           req.ID,
 		FromColumnID: req.FromColumnID,
@@ -15,22 +19,31 @@ func (m *CardMapper) ToCardMoveCommand(req *CardMoveRequest) *domain.CardMoveCom
 	}
 }
 
-func (m *CardMapper) CardRequestToCard(req *CardRequest) *domain.Card {
+func (m *CardMapper) ToCard(req *CardRequest) *domain.Card {
+	if req == nil {
+		return nil
+	}
+
 	card := &domain.Card{
-		ID:          req.ID,
-		ColumnID:    req.ColumnID,
-		BoardID:     req.BoardID,
-		Text:        req.Text,
-		Description: req.Description,
+		ID:             req.ID,
+		ColumnID:       req.ColumnID,
+		BoardID:        req.BoardID,
+		Text:           req.Text,
+		Description:    req.Description,
+		CardProperties: domain.CardProperties{},
 	}
 
-	if req.cardProperties != nil && req.cardProperties.Color != nil {
-		card.Color = *req.cardProperties.Color
-	}
-
-	if req.cardProperties != nil && req.cardProperties.Tag != nil {
-		card.Tag = *req.cardProperties.Tag
+	if req.cardProperties != nil {
+		card.CardProperties.Color = safeDerefString(req.cardProperties.Color)
+		card.CardProperties.Tag = safeDerefString(req.cardProperties.Tag)
 	}
 
 	return card
+}
+
+func safeDerefString(ptr *string) string {
+	if ptr == nil {
+		return ""
+	}
+	return *ptr
 }

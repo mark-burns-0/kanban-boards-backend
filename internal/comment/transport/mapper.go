@@ -4,11 +4,15 @@ import "backend/internal/comment/domain"
 
 type CommentMapper struct{}
 
-func (m *CommentMapper) ToComment(comment *Comment) *domain.Comment {
+func (m *CommentMapper) ToComment(req *Comment) *domain.Comment {
+	if req == nil {
+		return nil
+	}
+
 	return &domain.Comment{
-		ID:     comment.ID,
-		UserID: comment.UserID,
-		CardID: comment.CardID,
-		Text:   comment.Text,
+		ID:     req.ID,
+		UserID: req.UserID,
+		CardID: req.CardID,
+		Text:   req.Text,
 	}
 }

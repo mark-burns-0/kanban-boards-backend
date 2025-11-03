@@ -67,7 +67,7 @@ func (h *CardHandler) Create(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-	if err := h.cardService.Create(c.Context(), h.cardMapper.CardRequestToCard(body)); err != nil {
+	if err := h.cardService.Create(c.Context(), h.cardMapper.ToCard(body)); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.Status(fiber.StatusCreated).JSON(
@@ -100,7 +100,7 @@ func (h *CardHandler) Update(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
-	if err := h.cardService.Update(c.Context(), h.cardMapper.CardRequestToCard(body)); err != nil {
+	if err := h.cardService.Update(c.Context(), h.cardMapper.ToCard(body)); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.Status(fiber.StatusOK).JSON(
@@ -120,7 +120,7 @@ func (h *CardHandler) Delete(c *fiber.Ctx) error {
 	}
 	body.BoardID = c.Params(BoardIDKey)
 	body.ID = cardIDUint64
-	if err := h.cardService.Delete(c.Context(), h.cardMapper.CardRequestToCard(body)); err != nil {
+	if err := h.cardService.Delete(c.Context(), h.cardMapper.ToCard(body)); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": domain.ErrCardNotFound,
 		})

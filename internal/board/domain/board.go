@@ -22,8 +22,19 @@ type BoardColumn struct {
 }
 
 type BoardListResult struct {
+<<<<<<< Updated upstream
 	Data       []*Board
 	TotalCount uint64
+=======
+	Data        []*Board
+	PerPage     uint64
+	CurrentPage uint64
+	TotalPages  uint64
+	TotalCount  uint64
+	NextPage    *uint64
+	HasNext     bool
+	HasPrev     bool
+>>>>>>> Stashed changes
 }
 
 type BoardWithDetails[T any] struct {
