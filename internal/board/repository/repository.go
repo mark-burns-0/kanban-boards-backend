@@ -5,6 +5,7 @@ import (
 	"backend/internal/shared/utils"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -46,6 +47,9 @@ func (r *BoardRepository) Get(ctx context.Context, uuid string) (*domain.Board, 
 		&board.UpdatedAt,
 	)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrBoardNotFound
+		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return board, nil

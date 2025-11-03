@@ -5,6 +5,7 @@ import (
 	"backend/internal/shared/ports/http"
 	"backend/internal/shared/utils"
 	"context"
+	"errors"
 	"log/slog"
 	"strconv"
 
@@ -71,6 +72,10 @@ func (h *CardHandler) Create(c *fiber.Ctx) error {
 	}
 
 	if err := h.cardService.Create(c.Context(), h.cardMapper.ToCard(body)); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrCardAlreadyExists):
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Card already exists"})
+		}
 		slog.Error(
 			"service error",
 			slog.String("operation", op),
@@ -114,6 +119,10 @@ func (h *CardHandler) Update(c *fiber.Ctx) error {
 	}
 
 	if err := h.cardService.Update(c.Context(), h.cardMapper.ToCard(body)); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrCardNotFound):
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Card not found"})
+		}
 		slog.Error(
 			"service error",
 			slog.String("operation", op),
@@ -178,6 +187,10 @@ func (h *CardHandler) MoveToNewPosition(c *fiber.Ctx) error {
 	}
 
 	if err := h.cardService.MoveToNewPosition(c.Context(), h.cardMapper.ToCardMoveCommand(body)); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrCardNotFound):
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Card not found"})
+		}
 		slog.Error(
 			"service error",
 			slog.String("operation", op),

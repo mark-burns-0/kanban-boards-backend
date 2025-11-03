@@ -6,6 +6,7 @@ import (
 	"backend/internal/shared/ports/http"
 	"backend/internal/shared/utils"
 	"context"
+	"errors"
 	"log/slog"
 	"strconv"
 
@@ -64,6 +65,10 @@ func (h *BoardHandler) GetByUUID(c *fiber.Ctx) error {
 
 	response, err := h.boardService.GetByUUID(c.Context(), uuid)
 	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrBoardNotFound):
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Board not found"})
+		}
 		slog.Error(
 			"service error",
 			slog.String("operation", op),
@@ -125,6 +130,10 @@ func (h *BoardHandler) Store(c *fiber.Ctx) error {
 	}
 
 	if err := h.boardService.Create(c.Context(), h.boardMapper.ToBoard(body)); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrBoardAlreadyExists):
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "Board already exists"})
+		}
 		slog.Error(
 			"service error",
 			slog.String("operation", op),
@@ -165,6 +174,10 @@ func (h *BoardHandler) Update(c *fiber.Ctx) error {
 	}
 
 	if err := h.boardService.Update(c.Context(), h.boardMapper.ToBoard(body)); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrBoardNotFound):
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Board not found"})
+		}
 		slog.Error(
 			"service error",
 			slog.String("operation", op),
@@ -224,6 +237,10 @@ func (h *BoardHandler) CreateColumn(c *fiber.Ctx) error {
 	}
 
 	if err := h.boardService.CreateColumn(c.Context(), h.boardMapper.ToBoardColumn(body)); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrBoardNotFound):
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Board not found"})
+		}
 		slog.Error(
 			"service error",
 			slog.String("operation", op),
@@ -271,6 +288,10 @@ func (h *BoardHandler) UpdateColumn(c *fiber.Ctx) error {
 	}
 
 	if err := h.boardService.UpdateColumn(c.Context(), h.boardMapper.ToBoardColumn(body)); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrColumnNotFound):
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Column not found"})
+		}
 		slog.Error(
 			"service error",
 			slog.String("operation", op),
@@ -314,6 +335,10 @@ func (h *BoardHandler) DeleteColumn(c *fiber.Ctx) error {
 	}
 
 	if err := h.boardService.DeleteColumn(c.Context(), h.boardMapper.ToBoardColumn(body)); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrColumnNotFound):
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Column not found"})
+		}
 		slog.Error(
 			"service error",
 			slog.String("operation", op),
