@@ -3,7 +3,6 @@ package http
 import (
 	"backend/internal/platform/http/middleware"
 	"backend/internal/platform/http/routes"
-	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -24,8 +23,12 @@ func RegisterRoutes(r fiber.Router, handlers Handlers) {
 }
 
 func healthCheck(c *fiber.Ctx) error {
-	return c.JSON(Response{
-		Message:    "OK",
-		StatusCode: http.StatusOK,
-	})
+	return c.JSON(struct {
+		Message    string `json:"message"`
+		StatusCode int    `json:"status_code"`
+	}{
+		StatusCode: 200,
+		Message:    "Ok",
+	},
+	)
 }

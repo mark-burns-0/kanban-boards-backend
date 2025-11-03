@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"backend/internal/shared/ports/repository"
 	"backend/internal/user/domain"
 	"context"
 	"database/sql"
@@ -13,12 +12,12 @@ var (
 )
 
 type UserRepository struct {
-	storage                repository.Storage
+	storage                Storage
 	updateStmt             *sql.Stmt
 	updateWithPasswordStmt *sql.Stmt
 }
 
-func NewUserRepository(storage repository.Storage) (*UserRepository, error) {
+func NewUserRepository(storage Storage) (*UserRepository, error) {
 	const op = "user.repository.NewUserRepository"
 	var err error
 	repo := &UserRepository{

@@ -15,16 +15,16 @@ import (
 	"backend/internal/platform/lang"
 	"backend/internal/platform/storage/postgres"
 	"backend/internal/platform/validation"
-	"backend/internal/shared/ports/repository"
 	userDomain "backend/internal/user/domain"
 	userRepository "backend/internal/user/repository"
 	userTransport "backend/internal/user/transport"
+	"database/sql"
+	"sync"
 	"time"
 
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"os/signal"
 	"syscall"
 
@@ -36,15 +36,35 @@ const (
 )
 
 type Storage interface {
+	Exec(query string, args ...any) (sql.Result, error)
+	Query(query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
+	Begin() (*sql.Tx, error)
+
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
+	GetDB() *sql.DB
 	Close() error
 }
 
+type Config interface {
+	GetAppName() string
+	GetServerPort() string
+	GetBcryptPower() string
+	GetAccessTokenTTL() string
+	GetRefreshTokenTTL() string
+	GetAccessTokenSecret() string
+	GetRefreshTokenSecret() string
+}
+
 type App struct {
-	config    *config.Config
 	validator *validation.Validator
 	lang      *lang.Registry
 	app       *fiber.App
-	storage   repository.Storage
+	storage   Storage
+	config    Config
 }
 
 func NewApp() (*App, error) {
@@ -55,7 +75,7 @@ func NewApp() (*App, error) {
 	storage, err := postgres.NewStorage(cfg)
 	if err != nil {
 		slog.Error("Failed to create storage", slog.String("error", err.Error()))
-		os.Exit(1)
+		return nil, fmt.Errorf("create storage: %w", err)
 	}
 	return &App{
 		config:    cfg,
@@ -136,33 +156,46 @@ func (a *App) gracefulShutdown() error {
 	defer cancel()
 
 	shutdownErr := make(chan error, 2)
-
+	wg := sync.WaitGroup{}
+	wg.Add(2)
 	go func() {
+		defer wg.Done()
 		if err := a.app.Shutdown(); err != nil {
 			shutdownErr <- fmt.Errorf("http server shutdown: %w", err)
 			return
 		}
-		shutdownErr <- nil
 	}()
 
 	go func() {
+		defer wg.Done()
 		if err := a.storage.Close(); err != nil {
 			shutdownErr <- fmt.Errorf("storage close: %w", err)
 			return
 		}
-		shutdownErr <- nil
 	}()
 
-	for i := 0; i < 2; i++ {
+	go func() {
+		defer close(shutdownErr)
+		wg.Wait()
+	}()
+
+	var errs []error
+	for {
 		select {
-		case err := <-shutdownErr:
+		case err, ok := <-shutdownErr:
+			if !ok {
+				if len(errs) > 0 {
+					return fmt.Errorf("shutdown completed with errors: %v", errs)
+				}
+				slog.Info("Graceful shutdown completed")
+				return nil
+			}
 			if err != nil {
-				slog.Error("Shutdown error", "error", err)
+				errs = append(errs, err)
+				slog.Error("Shutdown error", slog.Any("error", err))
 			}
 		case <-ctx.Done():
 			return fmt.Errorf("shutdown timeout: %w", ctx.Err())
 		}
 	}
-	slog.Info("Graceful shutdown completed")
-	return nil
 }

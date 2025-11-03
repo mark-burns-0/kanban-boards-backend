@@ -3,7 +3,6 @@ package transport
 import (
 	"backend/internal/board/domain"
 	cardDomain "backend/internal/card/domain"
-	"backend/internal/shared/dto"
 	"cmp"
 	"slices"
 )
@@ -98,12 +97,12 @@ func (m *BoardMapper) ToBoardListResponse(data *domain.BoardListResult) *BoardLi
 	return list
 }
 
-func (m *BoardMapper) ToSingleBoardResponse(data *domain.BoardWithDetails[cardDomain.CardWithComments]) *SingleBoardResponse[dto.CardWithComments] {
+func (m *BoardMapper) ToSingleBoardResponse(data *domain.BoardWithDetails[cardDomain.CardWithComments]) *SingleBoardResponse[CardWithComments] {
 	if data == nil {
 		return nil
 	}
 
-	board := &SingleBoardResponse[dto.CardWithComments]{
+	board := &SingleBoardResponse[CardWithComments]{
 		BoardResponse: &BoardResponse{
 			ID:          data.ID,
 			Name:        data.Name,
@@ -112,7 +111,7 @@ func (m *BoardMapper) ToSingleBoardResponse(data *domain.BoardWithDetails[cardDo
 			UpdatedAt:   data.UpdatedAt,
 		},
 		Columns: make([]*BoardColumnResponse, 0, len(data.Columns)),
-		Cards:   make([]*dto.CardWithComments, 0, len(data.Cards)),
+		Cards:   make([]*CardWithComments, 0, len(data.Cards)),
 	}
 
 	for _, column := range data.Columns {
@@ -131,7 +130,7 @@ func (m *BoardMapper) ToSingleBoardResponse(data *domain.BoardWithDetails[cardDo
 	})
 
 	for _, card := range data.Cards {
-		newCard := &dto.CardWithComments{
+		newCard := &CardWithComments{
 			ID:          card.ID,
 			ColumnID:    card.ColumnID,
 			Position:    card.Position,
@@ -139,10 +138,10 @@ func (m *BoardMapper) ToSingleBoardResponse(data *domain.BoardWithDetails[cardDo
 			Text:        &card.Text,
 			Description: &card.Description,
 			CreatedAt:   card.CreatedAt,
-			Comments:    make([]*dto.CardComment, 0, len(card.Comments)),
+			Comments:    make([]*CardComment, 0, len(card.Comments)),
 		}
 		for _, comment := range card.Comments {
-			newCard.Comments = append(newCard.Comments, &dto.CardComment{
+			newCard.Comments = append(newCard.Comments, &CardComment{
 				ID:        comment.ID,
 				CardID:    comment.CardID,
 				Text:      comment.Text,
@@ -151,22 +150,22 @@ func (m *BoardMapper) ToSingleBoardResponse(data *domain.BoardWithDetails[cardDo
 		}
 		if card.CardProperties.Color != "" {
 			if newCard.Properties == nil {
-				newCard.Properties = &dto.CardProperties{}
+				newCard.Properties = &CardProperties{}
 			}
 			newCard.Properties.Color = &card.CardProperties.Color
 		}
 		if card.CardProperties.Tag != "" {
 			if newCard.Properties == nil {
-				newCard.Properties = &dto.CardProperties{}
+				newCard.Properties = &CardProperties{}
 			}
 			newCard.Properties.Tag = &card.CardProperties.Tag
 		}
-		slices.SortStableFunc(newCard.Comments, func(a, b *dto.CardComment) int {
+		slices.SortStableFunc(newCard.Comments, func(a, b *CardComment) int {
 			return cmp.Compare(a.ID, b.ID)
 		})
 		board.Cards = append(board.Cards, newCard)
 	}
-	slices.SortStableFunc(board.Cards, func(a, b *dto.CardWithComments) int {
+	slices.SortStableFunc(board.Cards, func(a, b *CardWithComments) int {
 		return cmp.Compare(a.Position, b.Position)
 	})
 
