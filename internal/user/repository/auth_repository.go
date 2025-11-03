@@ -1,31 +1,18 @@
 package repository
 
 import (
+	"backend/internal/shared/ports/repository"
 	"backend/internal/shared/utils"
 	"backend/internal/user/domain"
 	"context"
-	"database/sql"
 	"fmt"
 )
 
-type Storage interface {
-	Exec(query string, args ...any) (sql.Result, error)
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
-	Begin() (*sql.Tx, error)
-
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
-	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
-	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
-	GetDB() *sql.DB
-}
-
 type AuthRepository struct {
-	storage Storage
+	storage repository.Storage
 }
 
-func NewAuthRepository(storage Storage) *AuthRepository {
+func NewAuthRepository(storage repository.Storage) *AuthRepository {
 	return &AuthRepository{storage: storage}
 }
 
