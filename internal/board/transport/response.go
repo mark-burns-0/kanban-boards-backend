@@ -28,17 +28,9 @@ type BoardListResponse struct {
 	Data        []*BoardResponse `json:"data"`
 	PerPage     uint64           `json:"per_page"`
 	CurrentPage uint64           `json:"current_page"`
-<<<<<<< Updated upstream
-	NextPage    *uint64          `json:"next_page"`
-	TotalPages  uint64           `json:"total_pages"`
-	HasNext     bool             `json:"has_next"`
-	HasPrev     bool             `json:"has_prev"`
-	TotalCount  uint64           `json:"total_count"`
-=======
 	TotalCount  uint64           `json:"total_count"`
 	TotalPages  uint64           `json:"total_pages"`
 	NextPage    *uint64          `json:"next_page"`
 	HasNext     bool             `json:"has_next"`
 	HasPrev     bool             `json:"has_prev"`
->>>>>>> Stashed changes
 }

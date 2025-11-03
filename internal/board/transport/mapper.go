@@ -1,6 +1,4 @@
 package transport
-<<<<<<< Updated upstream
-=======
 
 import (
 	"backend/internal/board/domain"
@@ -174,4 +172,3 @@ func (m *BoardMapper) ToSingleBoardResponse(data *domain.BoardWithDetails[cardDo
 
 	return board
 }
->>>>>>> Stashed changes
