@@ -50,19 +50,23 @@ func NewCardService(repo CardRepo, boardRepo BoardRepo) *CardService {
 
 func (s *CardService) GetListWithComments(ctx context.Context, boardID string) ([]*CardWithComments, error) {
 	const op = "card.service.GetListWithComments"
+
 	raws, err := s.repo.GetListWithComments(ctx, boardID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	return raws, nil
 }
 
 func (s *CardService) Create(ctx context.Context, req *Card) error {
 	const op = "card.service.Create"
+
 	maxPosition, err := s.repo.GetMaxColumnPosition(ctx, req.BoardID, req.ColumnID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
 	card := &Card{
 		BoardID:     req.BoardID,
 		ColumnID:    req.ColumnID,
@@ -74,9 +78,11 @@ func (s *CardService) Create(ctx context.Context, req *Card) error {
 			Tag:   req.Tag,
 		},
 	}
+
 	if err := s.repo.Create(ctx, card); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
 	return nil
 }
 
@@ -93,6 +99,7 @@ func (s *CardService) Update(ctx context.Context, req *Card) error {
 			Tag:   req.Tag,
 		},
 	}
+
 	exists, err := s.repo.Exists(ctx, card)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -103,6 +110,7 @@ func (s *CardService) Update(ctx context.Context, req *Card) error {
 	if err := s.repo.Update(ctx, card); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
 	return nil
 }
 
@@ -112,6 +120,7 @@ func (s *CardService) Delete(ctx context.Context, req *Card) error {
 		ID:      req.ID,
 		BoardID: req.BoardID,
 	}
+
 	exists, err := s.repo.Exists(ctx, card)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -119,6 +128,7 @@ func (s *CardService) Delete(ctx context.Context, req *Card) error {
 	if !exists {
 		return fmt.Errorf("%s: %w", op, ErrCardNotFound)
 	}
+
 	card, err = s.repo.GetById(ctx, card)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -126,6 +136,7 @@ func (s *CardService) Delete(ctx context.Context, req *Card) error {
 	if err := s.repo.Delete(ctx, card); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
 	return nil
 }
 
@@ -135,12 +146,14 @@ func (s *CardService) MoveToNewPosition(ctx context.Context, req *CardMoveComman
 		ID:      req.ID,
 		BoardID: req.BoardID,
 	})
+
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if !exists {
 		return fmt.Errorf("%s: %w", op, ErrCardNotFound)
 	}
+
 	isFromToColunExists, _ := s.boardRepo.ExistsColumn(ctx, req.BoardID, req.FromColumnID)
 	isToColumnExists, _ := s.boardRepo.ExistsColumn(ctx, req.BoardID, req.ToColumnID)
 	if !isFromToColunExists || !isToColumnExists {
@@ -149,6 +162,7 @@ func (s *CardService) MoveToNewPosition(ctx context.Context, req *CardMoveComman
 	if req.FromColumnID == req.ToColumnID && req.FromPosition == req.ToPosition {
 		return nil
 	}
+
 	maxValue, err := s.repo.GetMaxColumnPosition(ctx, req.BoardID, req.ToColumnID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -167,5 +181,6 @@ func (s *CardService) MoveToNewPosition(ctx context.Context, req *CardMoveComman
 	); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
 	return nil
 }

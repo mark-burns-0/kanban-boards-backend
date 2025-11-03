@@ -23,6 +23,7 @@ func NewUserRepository(storage Storage) (*UserRepository, error) {
 	repo := &UserRepository{
 		storage: storage,
 	}
+
 	repo.updateStmt, err = storage.GetDB().Prepare(`
 		UPDATE users SET name = $1, email = $2, updated_at = NOW()
 		WHERE id = $3 AND deleted_at IS NULL
@@ -45,6 +46,7 @@ func NewUserRepository(storage Storage) (*UserRepository, error) {
 func (r *UserRepository) Get(ctx context.Context, id uint64) (*domain.User, error) {
 	const op = "user.repository.Get"
 	user := &domain.User{}
+
 	row := r.storage.QueryRowContext(
 		ctx,
 		"SELECT id, email, name, created_at FROM users WHERE id = $1 AND deleted_at IS NULL",
@@ -53,20 +55,24 @@ func (r *UserRepository) Get(ctx context.Context, id uint64) (*domain.User, erro
 	if err := row.Scan(&user.ID, &user.Email, &user.Name, &user.CreatedAt); err != nil {
 		return nil, fmt.Errorf("%s: %s", op, err.Error())
 	}
+
 	return user, nil
 }
 
 func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 	const op = "user.repository.Update"
+
 	if user.Password != "" {
 		res, err := r.updateWithPasswordStmt.ExecContext(
 			ctx, user.Name, user.Email, user.Password, user.ID,
 		)
 		return handleQueryExec(op, res, err)
 	}
+
 	res, err := r.updateStmt.ExecContext(
 		ctx, user.Name, user.Email, user.ID,
 	)
+
 	return handleQueryExec(op, res, err)
 }
 
@@ -74,9 +80,11 @@ func handleQueryExec(op string, res sql.Result, err error) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
 	affected, err := res.RowsAffected()
 	if affected == 0 {
 		return fmt.Errorf("%s: %w", op, ErrNotFound)
 	}
+
 	return nil
 }

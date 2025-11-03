@@ -54,19 +54,23 @@ func (r *AuthService) Register(ctx context.Context, req *RegisterCommand) error 
 			email: req.Email,
 		})
 	}
+
 	power, err := strconv.Atoi(r.config.GetBcryptPower())
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), power)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
 	newUser := User{
 		Name:     req.Name,
 		Email:    req.Email,
 		Password: string(hashedPassword),
 	}
+
 	return r.authRepo.Create(ctx, &newUser)
 }
 
@@ -79,22 +83,27 @@ func (r *AuthService) Login(ctx context.Context, req *LoginCommand) (*Tokens, er
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, InvalidPasswordErr{})
 	}
+
 	accessToken, err := r.generateToken(user, AccessTokenType)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	refreshToken, err := r.generateToken(user, RefreshTokenType)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	err = r.authRepo.UpdateRefreshToken(ctx, user.ID, refreshToken)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	return &Tokens{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -110,18 +119,22 @@ func (r *AuthService) RefreshToken(ctx context.Context, token string) (*Tokens, 
 	if user == nil {
 		return nil, fmt.Errorf("%s: %w", op, ErrUserNotFound)
 	}
+
 	accessToken, err := r.generateToken(user, AccessTokenType)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	refreshToken, err := r.generateToken(user, RefreshTokenType)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	err = r.authRepo.UpdateRefreshToken(ctx, user.ID, refreshToken)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	return &Tokens{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -133,10 +146,12 @@ func (r *AuthService) generateToken(user *User, tokenType string) (string, error
 	if tokenType == "" {
 		return "", tokenTypeRequiredErr{}
 	}
+
 	tokenSecret, ttl, err := r.getTokenConfig(tokenType)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", op, ErrFailedToGetTokenConfig)
 	}
+
 	key := []byte(tokenSecret)
 	duration, err := time.ParseDuration(ttl)
 	if err != nil {
@@ -144,6 +159,7 @@ func (r *AuthService) generateToken(user *User, tokenType string) (string, error
 			tokenType, err,
 		})
 	}
+
 	claims := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
 		jwt.MapClaims{
@@ -152,10 +168,12 @@ func (r *AuthService) generateToken(user *User, tokenType string) (string, error
 			},
 			"exp": time.Now().Add(duration).Unix(),
 		})
+
 	signedString, err := claims.SignedString(key)
 	if err != nil {
 		return "", fmt.Errorf("%s: failed to sign %s token: %w", op, tokenType, err)
 	}
+
 	return signedString, nil
 }
 

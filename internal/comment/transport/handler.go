@@ -53,14 +53,15 @@ func (h *CommentHandler) Create(c *fiber.Ctx) error {
 	const op = "comment.transport.handler.Create"
 	comment, err := utils.ParseBody[Comment](c)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
+
 	cardID, err := strconv.ParseUint(c.Params(CardIDKey), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": domain.ErrCardNotFound})
 	}
 	comment.CardID = cardID
+
 	if validationErrors, statusCode, err := h.validaotr.ValidateStruct(c, comment); validationErrors != nil {
 		if err != nil {
 			slog.Error("validator error",
@@ -71,6 +72,7 @@ func (h *CommentHandler) Create(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
+
 	if err := h.service.Create(c.Context(), h.commentMapper.ToComment(comment)); err != nil {
 		switch {
 		case errors.Is(err, domain.ErrCommentAlreadyExists):
@@ -85,6 +87,7 @@ func (h *CommentHandler) Create(c *fiber.Ctx) error {
 		)
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "Server error"})
 	}
+
 	return c.Status(fiber.StatusCreated).JSON(
 		fiber.Map{
 			"message": h.lang.GetResponseMessage(c.Context(), CreatedMessage),
@@ -96,19 +99,22 @@ func (h *CommentHandler) Update(c *fiber.Ctx) error {
 	const op = "comment.transport.handler.Update"
 	comment, err := utils.ParseBody[Comment](c)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
+
 	commentID := c.Params(CommentIDKey)
 	commentIDUint64, err := strconv.ParseUint(commentID, 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": domain.ErrCommentNotFound})
 	}
+
 	cardID, err := strconv.ParseUint(c.Params(CardIDKey), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": domain.ErrCardNotFound})
 	}
 	comment.CardID = cardID
 	comment.ID = commentIDUint64
+
 	if validationErrors, statusCode, err := h.validaotr.ValidateStruct(c, comment); validationErrors != nil {
 		if err != nil {
 			slog.Error("validator error",
@@ -119,6 +125,7 @@ func (h *CommentHandler) Update(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
+
 	if err := h.service.Update(c.Context(), h.commentMapper.ToComment(comment)); err != nil {
 		switch {
 		case errors.Is(err, domain.ErrCardNotFound):
@@ -131,6 +138,7 @@ func (h *CommentHandler) Update(c *fiber.Ctx) error {
 		)
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "Server error"})
 	}
+
 	return c.Status(fiber.StatusOK).JSON(
 		fiber.Map{
 			"message": h.lang.GetResponseMessage(c.Context(), UpdatedMessage),
@@ -142,11 +150,12 @@ func (h *CommentHandler) Delete(c *fiber.Ctx) error {
 	commentID := c.Params(CommentIDKey)
 	commentIDUint64, err := strconv.ParseUint(commentID, 10, 64)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{})
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": domain.ErrCommentNotFound})
 	}
+
 	if err := h.service.Delete(c.Context(), commentIDUint64); err != nil {
-		return c.Status(fiber.StatusNotFound).
-			JSON(fiber.Map{})
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": domain.ErrCommentNotFound})
 	}
+
 	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{})
 }

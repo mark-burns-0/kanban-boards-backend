@@ -21,5 +21,6 @@ func safeDerefString(ptr *string) string {
 	if ptr == nil {
 		return ""
 	}
+
 	return *ptr
 }

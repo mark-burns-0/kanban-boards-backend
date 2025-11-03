@@ -50,6 +50,7 @@ func (s *UserService) Current(ctx context.Context, userID uint64) (*User, error)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	return &User{
 		Name:      user.Name,
 		Email:     user.Email,
@@ -64,6 +65,7 @@ func (s *UserService) Update(ctx context.Context, req *User, userID uint64) erro
 		Name:  req.Name,
 		Email: req.Email,
 	}
+
 	if req.Password != "" {
 		if req.PasswordConfirmation == "" || req.Password != req.PasswordConfirmation {
 			return ErrPasswordMismatch
@@ -74,5 +76,6 @@ func (s *UserService) Update(ctx context.Context, req *User, userID uint64) erro
 		}
 		user.Password = string(hashed)
 	}
+
 	return s.userRepo.Update(ctx, user)
 }

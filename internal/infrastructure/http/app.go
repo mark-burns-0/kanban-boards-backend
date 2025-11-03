@@ -16,10 +16,11 @@ type Config interface {
 
 func NewApp(cfg Config) *fiber.App {
 	app := fiber.New(fiber.Config{
-		Prefork:      true,
-		ReadTimeout:  timeout,
-		WriteTimeout: timeout,
-		AppName:      cfg.GetAppName(),
+		Prefork:       true,
+		CaseSensitive: true,
+		ReadTimeout:   timeout,
+		WriteTimeout:  timeout,
+		AppName:       cfg.GetAppName(),
 	})
 	return app
 }

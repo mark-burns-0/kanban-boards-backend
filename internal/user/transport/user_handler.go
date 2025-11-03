@@ -59,6 +59,7 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
+
 	if validationErrors, statusCode, err := h.validator.ValidateStruct(c, body); validationErrors != nil {
 		if err != nil {
 			slog.Error("validator error",
@@ -69,10 +70,12 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 		}
 		return c.Status(statusCode).JSON(fiber.Map{"error": validationErrors})
 	}
+
 	userID, ok := c.Locals(UserIDKey).(uint64)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
+
 	if err := h.userService.Update(c.Context(), h.mapperUser.ToUserDomain(body), userID); err != nil {
 		slog.Error(
 			"service error",
@@ -81,6 +84,7 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 		)
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "Server error"})
 	}
+
 	return c.Status(fiber.StatusCreated).JSON(
 		fiber.Map{
 			"message": h.lang.GetResponseMessage(c.Context(), UpdatedMessage),

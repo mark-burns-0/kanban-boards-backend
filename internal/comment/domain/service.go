@@ -40,10 +40,12 @@ func (s *CommentService) Create(ctx context.Context, req *Comment) error {
 		CardID: req.CardID,
 		Text:   req.Text,
 	}
+
 	err := s.repository.Create(ctx, comment)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
 	return nil
 }
 
@@ -54,6 +56,7 @@ func (s *CommentService) Update(ctx context.Context, req *Comment) error {
 		CardID: req.CardID,
 		Text:   req.Text,
 	}
+
 	if err := s.repository.Update(ctx, comment); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -63,8 +66,10 @@ func (s *CommentService) Update(ctx context.Context, req *Comment) error {
 
 func (s *CommentService) Delete(ctx context.Context, commentID uint64) error {
 	const op = "comment.service.Delete"
+
 	if err := s.repository.Delete(ctx, commentID); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
 	return nil
 }

@@ -91,6 +91,7 @@ func (m *BoardMapper) ToBoardListResponse(data *domain.BoardListResult) *BoardLi
 		TotalCount:  data.TotalCount,
 		Data:        make([]*BoardResponse, 0, len(data.Data)),
 	}
+
 	for _, data := range data.Data {
 		list.Data = append(list.Data, &BoardResponse{
 			ID:          data.ID,
@@ -100,6 +101,7 @@ func (m *BoardMapper) ToBoardListResponse(data *domain.BoardListResult) *BoardLi
 			UpdatedAt:   data.UpdatedAt,
 		})
 	}
+
 	return list
 }
 
