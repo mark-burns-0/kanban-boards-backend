@@ -1,6 +1,6 @@
 package http
 
-import "backend/internal/platform/http/routes"
+import "backend/internal/infrastructure/http/routes"
 
 type Handlers struct {
 	routes.AuthHandler

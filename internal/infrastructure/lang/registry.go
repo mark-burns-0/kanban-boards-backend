@@ -1,8 +1,8 @@
 package lang
 
 import (
-	"backend/internal/platform/lang/eng"
-	"backend/internal/platform/lang/ru"
+	"backend/internal/infrastructure/lang/eng"
+	"backend/internal/infrastructure/lang/ru"
 	"context"
 	"errors"
 	"log/slog"

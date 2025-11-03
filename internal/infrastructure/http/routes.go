@@ -1,8 +1,8 @@
 package http
 
 import (
-	"backend/internal/platform/http/middleware"
-	"backend/internal/platform/http/routes"
+	"backend/internal/infrastructure/http/middleware"
+	"backend/internal/infrastructure/http/routes"
 
 	"github.com/gofiber/fiber/v2"
 )

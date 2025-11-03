@@ -1,7 +1,7 @@
 package validation
 
 import (
-	"backend/internal/platform/lang"
+	"backend/internal/infrastructure/lang"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"

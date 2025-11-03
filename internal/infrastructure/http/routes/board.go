@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"backend/internal/platform/http/middleware"
+	"backend/internal/infrastructure/http/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )
