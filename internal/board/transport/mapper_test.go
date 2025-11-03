@@ -603,7 +603,7 @@ func Test_ToSingleBoardResponse(t *testing.T) {
 			},
 		},
 		{
-			name: "without properties", // Новый тест-кейс
+			name: "without properties",
 			req: &domain.BoardWithDetails[cardDomain.CardWithComments]{
 				Board: &domain.Board{
 					ID:          "93a49b99-a029-4a18-bbbc-c10d91a8c267",
@@ -622,7 +622,7 @@ func Test_ToSingleBoardResponse(t *testing.T) {
 						Text:           testText,
 						Description:    testText,
 						CreatedAt:      startedTime,
-						CardProperties: cardDomain.CardProperties{}, // Пустые свойства
+						CardProperties: cardDomain.CardProperties{},
 						Comments:       []cardDomain.CardComment{},
 					},
 				},
@@ -645,14 +645,14 @@ func Test_ToSingleBoardResponse(t *testing.T) {
 						Text:        &testText,
 						Description: &testText,
 						CreatedAt:   startedTime,
-						Properties:  nil, // Properties должен быть nil
+						Properties:  nil,
 						Comments:    []*CardComment{},
 					},
 				},
 			},
 		},
 		{
-			name: "unsorted data", // Проверка сортировки
+			name: "unsorted data",
 			req: &domain.BoardWithDetails[cardDomain.CardWithComments]{
 				Board: &domain.Board{
 					ID:          "93a49b99-a029-4a18-bbbc-c10d91a8c267",
@@ -664,7 +664,7 @@ func Test_ToSingleBoardResponse(t *testing.T) {
 				Columns: []*domain.BoardColumn{
 					{
 						ID:        2,
-						Position:  3, // Не по порядку
+						Position:  3,
 						BoardID:   "93a49b99-a029-4a18-bbbc-c10d91a8c267",
 						Name:      "Column 3",
 						Color:     "color",
@@ -672,7 +672,7 @@ func Test_ToSingleBoardResponse(t *testing.T) {
 					},
 					{
 						ID:        1,
-						Position:  1, // Не по порядку
+						Position:  1,
 						BoardID:   "93a49b99-a029-4a18-bbbc-c10d91a8c267",
 						Name:      "Column 1",
 						Color:     "color",
@@ -692,7 +692,7 @@ func Test_ToSingleBoardResponse(t *testing.T) {
 				Columns: []*BoardColumnResponse{
 					{
 						ID:        1,
-						Position:  1, // Должен быть первым после сортировки
+						Position:  1,
 						BoardID:   "93a49b99-a029-4a18-bbbc-c10d91a8c267",
 						Name:      "Column 1",
 						Color:     "color",
@@ -700,7 +700,7 @@ func Test_ToSingleBoardResponse(t *testing.T) {
 					},
 					{
 						ID:        2,
-						Position:  3, // Должен быть вторым после сортировки
+						Position:  3,
 						BoardID:   "93a49b99-a029-4a18-bbbc-c10d91a8c267",
 						Name:      "Column 3",
 						Color:     "color",
