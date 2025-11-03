@@ -477,6 +477,9 @@ func Test_ToBoardListResponse(t *testing.T) {
 
 func Test_ToSingleBoardResponse(t *testing.T) {
 	mapper := BoardMapper{}
+	testText := "Test text"
+	startedTime := time.Now()
+
 	tests := []struct {
 		name     string
 		req      *domain.BoardWithDetails[cardDomain.CardWithComments]
@@ -487,10 +490,230 @@ func Test_ToSingleBoardResponse(t *testing.T) {
 			req:      nil,
 			expected: nil,
 		},
+		{
+			name: "zero values",
+			req: &domain.BoardWithDetails[cardDomain.CardWithComments]{
+				Board: &domain.Board{
+					ID:          "",
+					Name:        "",
+					Description: "",
+					CreatedAt:   startedTime,
+					UpdatedAt:   startedTime,
+				},
+				Columns: []*domain.BoardColumn{},
+				Cards:   []*cardDomain.CardWithComments{},
+			},
+			expected: &SingleBoardResponse[CardWithComments]{
+				BoardResponse: &BoardResponse{
+					ID:          "",
+					Name:        "",
+					Description: "",
+					CreatedAt:   startedTime,
+					UpdatedAt:   startedTime,
+				},
+				Columns: []*BoardColumnResponse{},
+				Cards:   []*CardWithComments{},
+			},
+		},
+		{
+			name: "valid data",
+			req: &domain.BoardWithDetails[cardDomain.CardWithComments]{
+				Board: &domain.Board{
+					ID:          "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+					Name:        "Test name",
+					Description: "Test description",
+					CreatedAt:   startedTime,
+					UpdatedAt:   startedTime,
+				},
+				Columns: []*domain.BoardColumn{
+					{
+						ID:        1,
+						Position:  1,
+						BoardID:   "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+						Name:      "Test name",
+						Color:     "Test color",
+						CreatedAt: startedTime,
+					},
+				},
+				Cards: []*cardDomain.CardWithComments{
+					{
+						ID:          1,
+						ColumnID:    1,
+						Position:    1,
+						BoardID:     "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+						Text:        testText,
+						Description: testText,
+						CreatedAt:   startedTime,
+						CardProperties: cardDomain.CardProperties{
+							Color: testText,
+							Tag:   testText,
+						},
+						Comments: []cardDomain.CardComment{
+							{
+								ID:        1,
+								CardID:    1,
+								Text:      testText,
+								CreatedAt: startedTime,
+							},
+						},
+					},
+				},
+			},
+			expected: &SingleBoardResponse[CardWithComments]{
+				BoardResponse: &BoardResponse{
+					ID:          "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+					Name:        "Test name",
+					Description: "Test description",
+					CreatedAt:   startedTime,
+					UpdatedAt:   startedTime,
+				},
+				Columns: []*BoardColumnResponse{
+					{
+						ID:        1,
+						Position:  1,
+						BoardID:   "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+						Name:      "Test name",
+						Color:     "Test color",
+						CreatedAt: startedTime,
+					},
+				},
+				Cards: []*CardWithComments{
+					{
+						ID:          1,
+						ColumnID:    1,
+						Position:    1,
+						BoardID:     "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+						Text:        &testText,
+						Description: &testText,
+						CreatedAt:   startedTime,
+						Properties: &CardProperties{
+							Color: &testText,
+							Tag:   &testText,
+						},
+						Comments: []*CardComment{
+							{
+								ID:        1,
+								CardID:    1,
+								Text:      testText,
+								CreatedAt: startedTime,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "without properties", // Новый тест-кейс
+			req: &domain.BoardWithDetails[cardDomain.CardWithComments]{
+				Board: &domain.Board{
+					ID:          "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+					Name:        "Test name",
+					Description: "Test description",
+					CreatedAt:   startedTime,
+					UpdatedAt:   startedTime,
+				},
+				Columns: []*domain.BoardColumn{},
+				Cards: []*cardDomain.CardWithComments{
+					{
+						ID:             1,
+						ColumnID:       1,
+						Position:       1,
+						BoardID:        "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+						Text:           testText,
+						Description:    testText,
+						CreatedAt:      startedTime,
+						CardProperties: cardDomain.CardProperties{}, // Пустые свойства
+						Comments:       []cardDomain.CardComment{},
+					},
+				},
+			},
+			expected: &SingleBoardResponse[CardWithComments]{
+				BoardResponse: &BoardResponse{
+					ID:          "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+					Name:        "Test name",
+					Description: "Test description",
+					CreatedAt:   startedTime,
+					UpdatedAt:   startedTime,
+				},
+				Columns: []*BoardColumnResponse{},
+				Cards: []*CardWithComments{
+					{
+						ID:          1,
+						ColumnID:    1,
+						Position:    1,
+						BoardID:     "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+						Text:        &testText,
+						Description: &testText,
+						CreatedAt:   startedTime,
+						Properties:  nil, // Properties должен быть nil
+						Comments:    []*CardComment{},
+					},
+				},
+			},
+		},
+		{
+			name: "unsorted data", // Проверка сортировки
+			req: &domain.BoardWithDetails[cardDomain.CardWithComments]{
+				Board: &domain.Board{
+					ID:          "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+					Name:        "Test name",
+					Description: "Test description",
+					CreatedAt:   startedTime,
+					UpdatedAt:   startedTime,
+				},
+				Columns: []*domain.BoardColumn{
+					{
+						ID:        2,
+						Position:  3, // Не по порядку
+						BoardID:   "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+						Name:      "Column 3",
+						Color:     "color",
+						CreatedAt: startedTime,
+					},
+					{
+						ID:        1,
+						Position:  1, // Не по порядку
+						BoardID:   "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+						Name:      "Column 1",
+						Color:     "color",
+						CreatedAt: startedTime,
+					},
+				},
+				Cards: []*cardDomain.CardWithComments{},
+			},
+			expected: &SingleBoardResponse[CardWithComments]{
+				BoardResponse: &BoardResponse{
+					ID:          "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+					Name:        "Test name",
+					Description: "Test description",
+					CreatedAt:   startedTime,
+					UpdatedAt:   startedTime,
+				},
+				Columns: []*BoardColumnResponse{
+					{
+						ID:        1,
+						Position:  1, // Должен быть первым после сортировки
+						BoardID:   "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+						Name:      "Column 1",
+						Color:     "color",
+						CreatedAt: startedTime,
+					},
+					{
+						ID:        2,
+						Position:  3, // Должен быть вторым после сортировки
+						BoardID:   "93a49b99-a029-4a18-bbbc-c10d91a8c267",
+						Name:      "Column 3",
+						Color:     "color",
+						CreatedAt: startedTime,
+					},
+				},
+				Cards: []*CardWithComments{},
+			},
+		},
 	}
+
 	for _, tc := range tests {
-		name := fmt.Sprintf("case(%s)", tc.name)
-		t.Run(name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			actual := mapper.ToSingleBoardResponse(tc.req)
 			assert.Equal(t, tc.expected, actual)
 		})
