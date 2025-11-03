@@ -50,7 +50,7 @@ func (h *UserHandler) Current(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
-	return c.JSON(userResponse)
+	return c.JSON(h.mapperUser.ToUserResponse(userResponse))
 }
 
 func (h *UserHandler) Update(c *fiber.Ctx) error {

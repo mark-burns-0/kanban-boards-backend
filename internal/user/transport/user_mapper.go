@@ -17,6 +17,18 @@ func (m *UserMapper) ToUserDomain(req *UserRequest) *domain.User {
 	}
 }
 
+func (m *UserMapper) ToUserResponse(user *domain.User) *UserResponse {
+	if user == nil {
+		return nil
+	}
+
+	return &UserResponse{
+		Name:      user.Name,
+		Email:     user.Email,
+		CreatedAt: &user.CreatedAt,
+	}
+}
+
 func safeDerefString(ptr *string) string {
 	if ptr == nil {
 		return ""
