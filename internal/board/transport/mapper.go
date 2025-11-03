@@ -20,12 +20,18 @@ func (m *BoardMapper) ToBoardGetFilter(req *BoardGetFilter) *domain.BoardGetFilt
 		Page:    req.Page,
 	}
 
-	if req.FilterFields != nil && req.FilterFields.Name != nil {
-		filters.FilterFields.Name = req.FilterFields.Name
-	}
+	if req.FilterFields != nil {
+		if filters.FilterFields == nil {
+			filters.FilterFields = &domain.Filters{}
+		}
 
-	if req.FilterFields != nil && req.FilterFields.Description != nil {
-		filters.FilterFields.Description = req.FilterFields.Description
+		if req.FilterFields.Name != nil {
+			filters.FilterFields.Name = req.FilterFields.Name
+		}
+
+		if req.FilterFields.Description != nil {
+			filters.FilterFields.Description = req.FilterFields.Description
+		}
 	}
 
 	return filters
@@ -102,20 +108,27 @@ func (m *BoardMapper) ToSingleBoardResponse(data *domain.BoardWithDetails[cardDo
 		return nil
 	}
 
-	board := &SingleBoardResponse[CardWithComments]{
-		BoardResponse: &BoardResponse{
-			ID:          data.ID,
-			Name:        data.Name,
-			Description: data.Description,
-			CreatedAt:   data.CreatedAt,
-			UpdatedAt:   data.UpdatedAt,
-		},
-		Columns: make([]*BoardColumnResponse, 0, len(data.Columns)),
-		Cards:   make([]*CardWithComments, 0, len(data.Cards)),
+	return &SingleBoardResponse[CardWithComments]{
+		BoardResponse: m.toBoardResponse(data),
+		Columns:       m.mapAndSortColumns(data.Columns),
+		Cards:         m.mapAndSortCards(data.Cards),
 	}
+}
 
-	for _, column := range data.Columns {
-		board.Columns = append(board.Columns, &BoardColumnResponse{
+func (m *BoardMapper) toBoardResponse(data *domain.BoardWithDetails[cardDomain.CardWithComments]) *BoardResponse {
+	return &BoardResponse{
+		ID:          data.ID,
+		Name:        data.Name,
+		Description: data.Description,
+		CreatedAt:   data.CreatedAt,
+		UpdatedAt:   data.UpdatedAt,
+	}
+}
+
+func (m *BoardMapper) mapAndSortColumns(columns []*domain.BoardColumn) []*BoardColumnResponse {
+	mapped := make([]*BoardColumnResponse, 0, len(columns))
+	for _, column := range columns {
+		mapped = append(mapped, &BoardColumnResponse{
 			ID:        column.ID,
 			Position:  column.Position,
 			BoardID:   column.BoardID,
@@ -125,49 +138,70 @@ func (m *BoardMapper) ToSingleBoardResponse(data *domain.BoardWithDetails[cardDo
 		})
 	}
 
-	slices.SortStableFunc(board.Columns, func(a, b *BoardColumnResponse) int {
+	slices.SortFunc(mapped, func(a, b *BoardColumnResponse) int {
 		return cmp.Compare(a.Position, b.Position)
 	})
 
-	for _, card := range data.Cards {
-		newCard := &CardWithComments{
-			ID:          card.ID,
-			ColumnID:    card.ColumnID,
-			Position:    card.Position,
-			BoardID:     card.BoardID,
-			Text:        &card.Text,
-			Description: &card.Description,
-			CreatedAt:   card.CreatedAt,
-			Comments:    make([]*CardComment, 0, len(card.Comments)),
-		}
-		for _, comment := range card.Comments {
-			newCard.Comments = append(newCard.Comments, &CardComment{
-				ID:        comment.ID,
-				CardID:    comment.CardID,
-				Text:      comment.Text,
-				CreatedAt: comment.CreatedAt,
-			})
-		}
-		if card.CardProperties.Color != "" {
-			if newCard.Properties == nil {
-				newCard.Properties = &CardProperties{}
-			}
-			newCard.Properties.Color = &card.CardProperties.Color
-		}
-		if card.CardProperties.Tag != "" {
-			if newCard.Properties == nil {
-				newCard.Properties = &CardProperties{}
-			}
-			newCard.Properties.Tag = &card.CardProperties.Tag
-		}
-		slices.SortStableFunc(newCard.Comments, func(a, b *CardComment) int {
-			return cmp.Compare(a.ID, b.ID)
-		})
-		board.Cards = append(board.Cards, newCard)
+	return mapped
+}
+
+func (m *BoardMapper) mapAndSortCards(cards []*cardDomain.CardWithComments) []*CardWithComments {
+	mapped := make([]*CardWithComments, 0, len(cards))
+	for _, card := range cards {
+		mapped = append(mapped, m.mapCardWithComments(card))
 	}
-	slices.SortStableFunc(board.Cards, func(a, b *CardWithComments) int {
-		return cmp.Compare(a.Position, b.Position)
+
+	slices.SortFunc(mapped, func(a, b *CardWithComments) int {
+		return cmp.Compare(a.ID, b.ID)
 	})
 
-	return board
+	return mapped
+}
+
+func (m *BoardMapper) mapCardWithComments(card *cardDomain.CardWithComments) *CardWithComments {
+	mapped := &CardWithComments{
+		ID:          card.ID,
+		ColumnID:    card.ColumnID,
+		Position:    card.Position,
+		BoardID:     card.BoardID,
+		Text:        &card.Text,
+		Description: &card.Description,
+		CreatedAt:   card.CreatedAt,
+		Comments:    m.mapAndSortComments(card.Comments),
+	}
+
+	m.mapCardProperties(card, mapped)
+	return mapped
+}
+
+func (m *BoardMapper) mapCardProperties(card *cardDomain.CardWithComments, mapped *CardWithComments) {
+	if card.CardProperties.Color == "" && card.CardProperties.Tag == "" {
+		return
+	}
+
+	mapped.Properties = &CardProperties{}
+	if card.CardProperties.Color != "" {
+		mapped.Properties.Color = &card.CardProperties.Color
+	}
+	if card.CardProperties.Tag != "" {
+		mapped.Properties.Tag = &card.CardProperties.Tag
+	}
+}
+
+func (m *BoardMapper) mapAndSortComments(comments []cardDomain.CardComment) []*CardComment {
+	mapped := make([]*CardComment, 0, len(comments))
+	for _, comment := range comments {
+		mapped = append(mapped, &CardComment{
+			ID:        comment.ID,
+			CardID:    comment.CardID,
+			Text:      comment.Text,
+			CreatedAt: comment.CreatedAt,
+		})
+	}
+
+	slices.SortFunc(mapped, func(a, b *CardComment) int {
+		return cmp.Compare(a.ID, b.ID)
+	})
+
+	return mapped
 }
