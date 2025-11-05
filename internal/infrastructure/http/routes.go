@@ -8,6 +8,7 @@ import (
 )
 
 func RegisterRoutes(r fiber.Router, handlers Handlers) {
+	r.Use(middleware.CORS)
 	r.Use(middleware.LogRequest)
 	r.Use(middleware.Recover)
 	r.Use(middleware.NotFound)
