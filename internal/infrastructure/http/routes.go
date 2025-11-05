@@ -9,10 +9,12 @@ import (
 
 func RegisterRoutes(r fiber.Router, handlers Handlers) {
 	r.Use(middleware.CORS)
+	r.Use(middleware.Lang)
 	r.Use(middleware.LogRequest)
 	r.Use(middleware.Recover)
 	r.Use(middleware.NotFound)
 	r.Use(middleware.MethodWhiteList)
+
 	api := r.Group("/api")
 	v1 := api.Group("/v1")
 	v1.Get("/health", healthCheck)
