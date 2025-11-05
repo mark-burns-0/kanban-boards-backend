@@ -85,7 +85,7 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "Server error"})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(
+	return c.Status(fiber.StatusOK).JSON(
 		fiber.Map{
 			"message": h.lang.GetResponseMessage(c.Context(), UpdatedMessage),
 		},
