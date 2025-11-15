@@ -130,7 +130,7 @@ func Test_ToCard(t *testing.T) {
 				BoardID:     "e102c99e-651c-44e1-bff1-c4a22e3134ce",
 				Text:        "test text",
 				Description: "test description",
-				cardProperties: &cardProperties{
+				CardProperties: CardProperties{
 					Color: color,
 					Tag:   tag,
 				},
@@ -155,7 +155,7 @@ func Test_ToCard(t *testing.T) {
 				BoardID:     "e102c99e-651c-44e1-bff1-c4a22e3134ce",
 				Text:        "test text",
 				Description: "test description",
-				cardProperties: &cardProperties{
+				CardProperties: CardProperties{
 					Color: color,
 				},
 			},
@@ -178,7 +178,7 @@ func Test_ToCard(t *testing.T) {
 				BoardID:     "e102c99e-651c-44e1-bff1-c4a22e3134ce",
 				Text:        "test text",
 				Description: "test description",
-				cardProperties: &cardProperties{
+				CardProperties: CardProperties{
 					Tag: tag,
 				},
 			},
@@ -201,7 +201,7 @@ func Test_ToCard(t *testing.T) {
 				BoardID:        "e102c99e-651c-44e1-bff1-c4a22e3134ce",
 				Text:           "test text",
 				Description:    "test description",
-				cardProperties: &cardProperties{},
+				CardProperties: CardProperties{},
 			},
 			expected: &domain.Card{
 				ID:             1,
@@ -220,7 +220,7 @@ func Test_ToCard(t *testing.T) {
 				BoardID:     "e102c99e-651c-44e1-bff1-c4a22e3134ce",
 				Text:        "test text",
 				Description: "test description",
-				cardProperties: &cardProperties{
+				CardProperties: CardProperties{
 					Color: nil,
 					Tag:   nil,
 				},

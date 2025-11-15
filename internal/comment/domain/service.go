@@ -17,10 +17,15 @@ type CommentDeleter interface {
 	Delete(ctx context.Context, commentID uint64) error
 }
 
+type CommentGetter interface {
+	CommentExistsInCard(ctx context.Context, cardID uint64) (bool, error)
+}
+
 type CommentRepo interface {
 	CommentCreator
 	CommentUpdater
 	CommentDeleter
+	CommentGetter
 }
 
 type CommentService struct {
@@ -55,6 +60,7 @@ func (s *CommentService) Update(ctx context.Context, req *Comment) error {
 		ID:     req.ID,
 		CardID: req.CardID,
 		Text:   req.Text,
+		UserID: req.UserID,
 	}
 
 	if err := s.repository.Update(ctx, comment); err != nil {

@@ -49,8 +49,8 @@ type CardMoveCommand struct {
 }
 
 type CardProperties struct {
-	Color string
-	Tag   string
+	Color string `json:"color,omitempty"`
+	Tag   string `json:"tag,omitempty"`
 }
 
 func (cp *CardProperties) Scan(value interface{}) error {

@@ -15,9 +15,9 @@ type AuthHandler interface {
 func AuthRoutes(router fiber.Router, h AuthHandler) fiber.Router {
 	auth := router.Group("/auth")
 
-	auth.Post("/login", h.Login)       // вход в систему
-	auth.Post("/register", h.Register) // регистрация пользователя
-	auth.Post("/refresh-token", middleware.AuthRequired, h.RefreshToken)
+	auth.Post("/login", h.Login)
+	auth.Post("/register", h.Register)
+	auth.Post("/refresh-token", middleware.RefreshToken, h.RefreshToken)
 
 	return auth
 }

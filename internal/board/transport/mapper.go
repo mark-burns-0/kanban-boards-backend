@@ -154,7 +154,7 @@ func (m *BoardMapper) mapAndSortCards(cards []*cardDomain.CardWithComments) []*C
 	}
 
 	slices.SortFunc(mapped, func(a, b *CardWithComments) int {
-		return cmp.Compare(a.ID, b.ID)
+		return cmp.Compare(a.Position, b.Position)
 	})
 
 	return mapped

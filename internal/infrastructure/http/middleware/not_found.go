@@ -8,7 +8,7 @@ import (
 )
 
 func parseAllowedMethodRoutes(routes []fiber.Route) []struct{ path, method string } {
-	allowedMethods := []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"}
+	allowedMethods := []string{"GET", "POST", "PUT", "DELETE", "PATCH"}
 	var parsedSlice []struct{ path, method string }
 	for _, route := range routes {
 		if slices.Contains(allowedMethods, route.Method) && route.Path != "/" {
@@ -27,8 +27,8 @@ func NotFound(c *fiber.Ctx) error {
 
 	if !contains(routes, c) {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "API endpoint not found",
-			"path":  c.Path(),
+			"errors": "API endpoint not found",
+			"path":   c.Path(),
 		})
 	}
 	return c.Next()

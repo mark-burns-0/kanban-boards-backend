@@ -16,8 +16,8 @@ type Config interface {
 
 func NewApp(cfg Config) *fiber.App {
 	app := fiber.New(fiber.Config{
-		Prefork:       true,
-		CaseSensitive: true,
+		Prefork:       false,
+		CaseSensitive: false,
 		ReadTimeout:   timeout,
 		WriteTimeout:  timeout,
 		AppName:       cfg.GetAppName(),

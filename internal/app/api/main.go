@@ -11,6 +11,7 @@ import (
 	commentRepository "backend/internal/comment/repository"
 	commentTransport "backend/internal/comment/transport"
 	"backend/internal/infrastructure/config"
+	"backend/internal/infrastructure/events"
 	"backend/internal/infrastructure/http"
 	"backend/internal/infrastructure/lang"
 	"backend/internal/infrastructure/storage/postgres"
@@ -74,7 +75,7 @@ func NewApp() (*App, error) {
 	cfg.SetLogger()
 	storage, err := postgres.NewStorage(cfg)
 	if err != nil {
-		slog.Error("Failed to create storage", slog.String("error", err.Error()))
+		slog.Error("Failed to create storage", slog.String("errors", err.Error()))
 		return nil, fmt.Errorf("create storage: %w", err)
 	}
 	return &App{
@@ -96,11 +97,20 @@ func (a *App) setupServices() (http.Handlers, error) {
 	cardRepo := cardRepository.NewCardRepository(a.storage)
 	commentRepo := commentRepository.NewCommentRepository(a.storage)
 
+	// bus
+	bus := events.NewInMemoryBus()
+	cardBoardEventHandler := cardDomain.NewCardBoardEventHandler(cardRepo)
+	bus.Subscribe("BoardDeleted", cardBoardEventHandler)
+	bus.Subscribe("ColumnDeleted", cardBoardEventHandler)
+
+	commentEventHandler := commentDomain.NewCommentCardEventHandler(commentRepo)
+	bus.Subscribe("CardDeleted", commentEventHandler)
+
 	//services
 	userService := userDomain.NewUserService(userRepo, a.config)
 	authService := userDomain.NewAuthService(authRepo, a.config)
-	cardService := cardDomain.NewCardService(cardRepo, boardRepo)
-	boardService := boardDomain.NewBoardService(boardRepo, cardService)
+	cardService := cardDomain.NewCardService(cardRepo, boardRepo, bus)
+	boardService := boardDomain.NewBoardService(boardRepo, cardService, bus)
 	commentService := commentDomain.NewCommentService(commentRepo)
 
 	// handlers
@@ -192,7 +202,7 @@ func (a *App) gracefulShutdown() error {
 			}
 			if err != nil {
 				errs = append(errs, err)
-				slog.Error("Shutdown error", slog.Any("error", err))
+				slog.Error("Shutdown error", slog.Any("errors", err))
 			}
 		case <-ctx.Done():
 			return fmt.Errorf("shutdown timeout: %w", ctx.Err())

@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"backend/internal/shared/domain/events"
 	"context"
 	"fmt"
 )
@@ -14,6 +15,8 @@ type CardGetter interface {
 type CardCreator interface {
 	Create(context.Context, *Card) error
 	Exists(ctx context.Context, card *Card) (bool, error)
+	CardExistsInBoard(ctx context.Context, boardID string) (bool, error)
+	CardExistsInColumn(ctx context.Context, columnID uint64) (bool, error)
 }
 
 type CardUpdater interface {
@@ -39,12 +42,14 @@ type BoardRepo interface {
 type CardService struct {
 	repo      CardRepo
 	boardRepo BoardRepo
+	bus       events.EventDispatcher
 }
 
-func NewCardService(repo CardRepo, boardRepo BoardRepo) *CardService {
+func NewCardService(repo CardRepo, boardRepo BoardRepo, bus events.EventDispatcher) *CardService {
 	return &CardService{
 		repo:      repo,
 		boardRepo: boardRepo,
+		bus:       bus,
 	}
 }
 
@@ -120,7 +125,11 @@ func (s *CardService) Delete(ctx context.Context, req *Card) error {
 		ID:      req.ID,
 		BoardID: req.BoardID,
 	}
-
+	if err := s.bus.Dispatch(ctx, events.CardDeletedEvent{
+		CardID: req.ID,
+	}); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
 	exists, err := s.repo.Exists(ctx, card)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)

@@ -94,7 +94,7 @@ func (r *Registry) translateValidation(
 			res = strings.ReplaceAll(
 				res,
 				"{param}",
-				lang.GetAttribute(strcase.ToSnake(err.Param())),
+				err.Param(),
 			)
 		}
 		validatedMessages[strcase.ToSnake(err.Field())] = res

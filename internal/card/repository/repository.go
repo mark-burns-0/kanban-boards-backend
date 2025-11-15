@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+const (
+	existsCardQuery         = "SELECT EXISTS (SELECT 1 FROM cards WHERE id = $1 AND board_id = $2 AND deleted_at IS NULL)"
+	existsCardInBoardQuery  = "SELECT EXISTS (SELECT 1 FROM cards WHERE board_id = $1 AND deleted_at IS NULL)"
+	existsCardInColumnQuery = "SELECT EXISTS (SELECT 1 FROM cards WHERE column_id = $1 AND deleted_at IS NULL)"
+)
+
 type Storage interface {
 	Exec(query string, args ...any) (sql.Result, error)
 	Query(query string, args ...any) (*sql.Rows, error)
@@ -53,8 +59,8 @@ func (r *CardRepository) GetListWithComments(ctx context.Context, boardID string
 				comments.text,
 				comments.created_at
 		FROM cards
-		LEFT JOIN comments ON comments.card_id = cards.id
-		WHERE cards.deleted_at is null and comments.deleted_at is NULL
+		LEFT JOIN comments ON comments.card_id = cards.id AND comments.deleted_at IS NULL
+		WHERE cards.deleted_at is null
 			and cards.board_id = $1
 	`
 	rows, err := r.storage.QueryContext(ctx, query, boardID)
@@ -201,21 +207,6 @@ func (r *CardRepository) Delete(ctx context.Context, card *domain.Card) error {
 	return tx.Commit()
 }
 
-func (r *CardRepository) Exists(ctx context.Context, card *domain.Card) (bool, error) {
-	const op = "card.repository.Exists"
-	row := r.storage.QueryRowContext(ctx,
-		"SELECT EXISTS (SELECT 1 FROM cards WHERE id = $1 AND board_id = $2)",
-		card.ID,
-		card.BoardID,
-	)
-	var exists bool
-	err := row.Scan(&exists)
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
-	}
-	return exists, nil
-}
-
 func (r *CardRepository) GetMaxColumnPosition(ctx context.Context, boardUUID string, columnID uint64) (uint64, error) {
 	const op = "card.repository.GetMaxColumnPosition"
 	var maxValue sql.NullInt64
@@ -229,6 +220,55 @@ func (r *CardRepository) GetMaxColumnPosition(ctx context.Context, boardUUID str
 		return 0, nil
 	}
 	return uint64(maxValue.Int64), nil
+}
+
+func (r *CardRepository) Exists(ctx context.Context, card *domain.Card) (bool, error) {
+	const op = "card.repository.Exists"
+	var exists bool
+	var err error
+
+	if exists, err = utils.ExistsQueryWrapper(
+		ctx,
+		r.storage,
+		existsCardQuery,
+		card.ID,
+		card.BoardID,
+	); err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+	return exists, nil
+}
+
+func (r *CardRepository) CardExistsInBoard(ctx context.Context, boardUUID string) (bool, error) {
+	const op = "card.repository.CardExistsInBoard"
+	var exists bool
+	var err error
+
+	if exists, err = utils.ExistsQueryWrapper(
+		ctx,
+		r.storage,
+		existsCardInBoardQuery,
+		boardUUID,
+	); err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+	return exists, nil
+}
+
+func (r *CardRepository) CardExistsInColumn(ctx context.Context, columnID uint64) (bool, error) {
+	const op = "card.repository.CardExistsInColumnd"
+	var exists bool
+	var err error
+
+	if exists, err = utils.ExistsQueryWrapper(
+		ctx,
+		r.storage,
+		existsCardInColumnQuery,
+		columnID,
+	); err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+	return exists, nil
 }
 
 func (r *CardRepository) MoveToNewPosition(

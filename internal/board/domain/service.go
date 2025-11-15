@@ -2,11 +2,10 @@ package domain
 
 import (
 	"backend/internal/card/domain"
-	"cmp"
+	"backend/internal/shared/domain/events"
 	"context"
 	"fmt"
 	"math"
-	"slices"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -28,7 +27,7 @@ type BoardDeleter interface {
 }
 
 type BoardGetter interface {
-	Get(ctx context.Context, uuid string) (*Board, error)
+	Get(ctx context.Context, board *Board) (*Board, error)
 	GetList(ctx context.Context, filter *BoardGetFilter) (*BoardListResult, error)
 	GetColumnByID(ctx context.Context, column *BoardColumn) (*BoardColumn, error)
 	GetColumnList(ctx context.Context, uuid string) ([]*BoardColumn, error)
@@ -55,12 +54,14 @@ type CardService interface {
 type BoardService struct {
 	repo        BoardRepo
 	cardService CardService
+	bus         events.EventDispatcher
 }
 
-func NewBoardService(repo BoardRepo, cardService CardService) *BoardService {
+func NewBoardService(repo BoardRepo, cardService CardService, bus events.EventDispatcher) *BoardService {
 	return &BoardService{
 		repo:        repo,
 		cardService: cardService,
+		bus:         bus,
 	}
 }
 
@@ -80,6 +81,7 @@ func (s *BoardService) GetList(
 		page := filter.Page + 1
 		nextPage = &page
 	}
+
 	response := &BoardListResult{
 		Data:        rawBoards.Data,
 		PerPage:     filter.PerPage,
@@ -93,7 +95,7 @@ func (s *BoardService) GetList(
 	return response, nil
 }
 
-func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*BoardWithDetails[domain.CardWithComments], error) {
+func (s *BoardService) GetByUUID(ctx context.Context, req *Board) (*BoardWithDetails[domain.CardWithComments], error) {
 	const op = "board.service.GetByUUID"
 	var (
 		rawBoard   *Board
@@ -102,23 +104,24 @@ func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*BoardW
 	)
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		result, err := s.cardService.GetListWithComments(ctx, boardUUID)
+		result, err := s.cardService.GetListWithComments(ctx, req.ID)
 		cards = result
 		return err
 	})
 	eg.Go(func() error {
-		result, err := s.repo.Get(ctx, boardUUID)
+		result, err := s.repo.Get(ctx, req)
 		rawBoard = result
 		return err
 	})
 	eg.Go(func() error {
-		result, err := s.repo.GetColumnList(ctx, boardUUID)
+		result, err := s.repo.GetColumnList(ctx, req.ID)
 		rawColumns = result
 		return err
 	})
 	if err := eg.Wait(); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	var columns []*BoardColumn
 	for _, rawColumn := range rawColumns {
 		column := &BoardColumn{
@@ -131,9 +134,6 @@ func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*BoardW
 		}
 		columns = append(columns, column)
 	}
-	slices.SortStableFunc(columns, func(a, b *BoardColumn) int {
-		return cmp.Compare(a.ID, b.ID)
-	})
 	board := &BoardWithDetails[domain.CardWithComments]{
 		Board: &Board{
 			ID:          rawBoard.ID,
@@ -145,6 +145,7 @@ func (s *BoardService) GetByUUID(ctx context.Context, boardUUID string) (*BoardW
 		Cards:   cards,
 		Columns: columns,
 	}
+
 	return board, nil
 }
 
@@ -175,16 +176,22 @@ func (s *BoardService) Update(ctx context.Context, board *Board) error {
 	return nil
 }
 
-func (s *BoardService) Delete(ctx context.Context, boardUUID string) error {
+func (s *BoardService) Delete(ctx context.Context, board *Board) error {
 	const op = "board.service.Delete"
-	exists, err := s.repo.Exists(ctx, boardUUID)
+	exists, err := s.repo.Exists(ctx, board.ID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if !exists {
 		return fmt.Errorf("%s: %w", op, ErrBoardNotFound)
 	}
-	if err := s.repo.Delete(ctx, boardUUID); err != nil {
+	if err := s.bus.Dispatch(ctx, events.BoardDeletedEvent{
+		UserID:  board.UserID,
+		BoardID: board.ID,
+	}); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if err := s.repo.Delete(ctx, board.ID); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
@@ -227,6 +234,11 @@ func (s *BoardService) DeleteColumn(ctx context.Context, req *BoardColumn) error
 	column := &BoardColumn{
 		ID:      req.ID,
 		BoardID: req.BoardID,
+	}
+	if err := s.bus.Dispatch(ctx, events.ColumnDeletedEvent{
+		ColumnID: req.ID,
+	}); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	column, err := s.repo.GetColumnByID(ctx, column)
 	if err != nil {

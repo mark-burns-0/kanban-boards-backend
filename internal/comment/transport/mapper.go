@@ -1,6 +1,8 @@
 package transport
 
-import "backend/internal/comment/domain"
+import (
+	"backend/internal/comment/domain"
+)
 
 type CommentMapper struct{}
 

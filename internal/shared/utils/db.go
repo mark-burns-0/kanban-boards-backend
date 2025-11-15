@@ -31,3 +31,26 @@ func OpExec(
 	}
 	return nil
 }
+
+// ExistsQueryWrapper выполняет EXISTS SQL запрос и возвращает результат.
+// Пробрасывает ошибки без изменения для последующего wrapping в доменном коде.
+func ExistsQueryWrapper(
+	ctx context.Context,
+	db interface {
+		QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	},
+	query string,
+	args ...any,
+) (bool, error) {
+	row := db.QueryRowContext(
+		ctx,
+		query,
+		args...,
+	)
+	var exists bool
+	err := row.Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}

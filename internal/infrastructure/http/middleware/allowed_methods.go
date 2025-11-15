@@ -18,7 +18,7 @@ func MethodWhiteList(c *fiber.Ctx) error {
 
 	if !allowedMethods[c.Method()] {
 		return c.Status(fiber.StatusMethodNotAllowed).JSON(fiber.Map{
-			"error": fmt.Sprintf("Method %s not allowed", c.Method()),
+			"errors": fmt.Sprintf("Method %s not allowed", c.Method()),
 		})
 	}
 

@@ -28,20 +28,20 @@ func AuthRequired(c *fiber.Ctx) error {
 	if token == "" {
 		return c.Status(fiber.StatusUnauthorized).
 			JSON(
-				fiber.Map{"error": "missing_token"},
+				fiber.Map{"errors": "missing_token"},
 			)
 	}
 
 	claims := &Claims{}
 	if parsedToken, err := parseToken(token, claims); err != nil || !parsedToken.Valid {
 		return c.Status(fiber.StatusUnauthorized).JSON(
-			fiber.Map{"error": "token_expired_or_invalid"},
+			fiber.Map{"errors": "token_expired_or_invalid"},
 		)
 	}
 
 	if claims.Sub.UserID == nil || *claims.Sub.UserID == 0 {
 		return c.Status(fiber.StatusUnauthorized).JSON(
-			fiber.Map{"error": "invalid_user_identifier"},
+			fiber.Map{"errors": "invalid_user_identifier"},
 		)
 	}
 

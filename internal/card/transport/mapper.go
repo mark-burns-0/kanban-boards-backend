@@ -1,6 +1,8 @@
 package transport
 
-import "backend/internal/card/domain"
+import (
+	"backend/internal/card/domain"
+)
 
 type CardMapper struct{}
 
@@ -23,7 +25,6 @@ func (m *CardMapper) ToCard(req *CardRequest) *domain.Card {
 	if req == nil {
 		return nil
 	}
-
 	card := &domain.Card{
 		ID:             req.ID,
 		ColumnID:       req.ColumnID,
@@ -33,10 +34,8 @@ func (m *CardMapper) ToCard(req *CardRequest) *domain.Card {
 		CardProperties: domain.CardProperties{},
 	}
 
-	if req.cardProperties != nil {
-		card.CardProperties.Color = safeDerefString(req.cardProperties.Color)
-		card.CardProperties.Tag = safeDerefString(req.cardProperties.Tag)
-	}
+	card.CardProperties.Color = safeDerefString(req.CardProperties.Color)
+	card.CardProperties.Tag = safeDerefString(req.CardProperties.Tag)
 
 	return card
 }

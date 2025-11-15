@@ -8,6 +8,10 @@ import (
 	"fmt"
 )
 
+const (
+	existsCommentsInCard = "SELECT EXISTS(SELECT 1 FROM comments WHERE card_id = $1 AND deleted_at IS NULL)"
+)
+
 type Storage interface {
 	Exec(query string, args ...any) (sql.Result, error)
 	Query(query string, args ...any) (*sql.Rows, error)
@@ -32,6 +36,22 @@ func NewCommentRepository(
 	return &CommentRepository{
 		storage: storage,
 	}
+}
+
+func (r *CommentRepository) CommentExistsInCard(ctx context.Context, cardID uint64) (bool, error) {
+	const op = "comment.repository.CommentExistsInCard"
+	var exists bool
+	var err error
+	if exists, err = utils.ExistsQueryWrapper(
+		ctx,
+		r.storage,
+		existsCommentsInCard,
+		cardID,
+	); err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }
 
 func (r *CommentRepository) Create(ctx context.Context, comment *domain.Comment) error {

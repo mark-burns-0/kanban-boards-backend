@@ -1,12 +1,12 @@
 package transport
 
 type CardRequest struct {
-	ID              uint64
-	ColumnID        uint64 `json:"column_id" validate:"required,min=1"`
-	BoardID         string `json:"board_id" validate:"required,uuid"`
-	Text            string `json:"text" validate:"required,min=1,max=255"`
-	Description     string `json:"description" validate:"required,min=1,max=255"`
-	*cardProperties `json:"properties"`
+	ID             uint64
+	ColumnID       uint64 `json:"column_id" validate:"required,min=1"`
+	BoardID        string `json:"board_id" validate:"required,uuid"`
+	Text           string `json:"text" validate:"required,min=1,max=255"`
+	Description    string `json:"description" validate:"required,min=1,max=255"`
+	CardProperties `json:"properties"`
 }
 
 type CardMoveRequest struct {
@@ -18,7 +18,7 @@ type CardMoveRequest struct {
 	BoardID      string `json:"board_id" validate:"required,uuid"`
 }
 
-type cardProperties struct {
+type CardProperties struct {
 	Color *string `json:"color,omitempty" validate:"omitnil,hexcolor,max=255"`
 	Tag   *string `json:"tag,omitempty" validate:"omitnil,max=255"`
 }
